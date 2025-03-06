@@ -1,0 +1,27 @@
+{
+  "name": "dexter",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx hardhat test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
+    "ethers": "^6.13.5",
+    "hardhat": "^2.22.18",
+    "hardhat-abi-exporter": "^2.10.1",
+    "typechain": "^8.3.2"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
+    "@openzeppelin/contracts": "^5.2.0",
+    "@openzeppelin/test-helpers": "^0.5.16"
+  }
+}

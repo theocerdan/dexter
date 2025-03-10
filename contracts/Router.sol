@@ -27,7 +27,8 @@ contract Router is Ownable {
         getPair[token1][token0] = pair; // populate mapping in the reverse direction
         allPairs.push(pair);
 
-        console.log(tokenB, tokenA);
+        //console.log("pair created");
+        //console.log(tokenB, tokenA, pair);
         emit NewPair(tokenA, tokenB, pair);
         return pair;
     }

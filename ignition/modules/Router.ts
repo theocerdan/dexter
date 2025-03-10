@@ -6,7 +6,7 @@ const RouterModule = buildModule("RouterModule", (m) => {
     const tokenA = m.contract("DumbERC20", ["TokenA", "TKA"], { id: "TokenA" });
     const tokenB = m.contract("DumbERC20", ["TokenB", "TKB"], { id: "TokenB" });
 
-    const deployPair = m.call(router, "createPair", [tokenA, tokenB]);
+    const deployPair = m.call(router, "createPair", [tokenA, tokenB], { id: "Pair" });
 
     return { router }
 });

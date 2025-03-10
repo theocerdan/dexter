@@ -223,6 +223,19 @@ describe("Router contract", function () {
         await console.log("Owner tokenA balance: ", await tokenA.balanceOf(owner.getAddress()));
         await console.log("Owner tokenB balance: ", await tokenB.balanceOf(owner.getAddress()));
       });
+
+      it("swap tokenA to tokenB negative", async () => {
+        await printPool(pairContract, pairAddress, tokenA, tokenB);
+        await console.log("Owner tokenA balance: ", await tokenA.balanceOf(owner.getAddress()));
+        await console.log("Owner tokenB balance: ", await tokenB.balanceOf(owner.getAddress()));
+
+
+        await pairContract.connect(owner).swapTokenAToTokenB(-1);
+
+        await printPool(pairContract, pairAddress, tokenA, tokenB);
+        await console.log("Owner tokenA balance: ", await tokenA.balanceOf(owner.getAddress()));
+        await console.log("Owner tokenB balance: ", await tokenB.balanceOf(owner.getAddress()));
+      });
     });
 });
 

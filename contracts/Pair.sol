@@ -7,8 +7,6 @@ import "hardhat/console.sol";
 
 contract Pair {
 
-    // repo periphery a check pour le multihop swap
-
     address public tokenA;
     address public tokenB;
     uint256 public reserveA;
@@ -22,7 +20,6 @@ contract Pair {
     constructor(address _tokenA, address _tokenB) {
         tokenA = _tokenA;
         tokenB = _tokenB;
-        console.log("Pair contract created");
     }
 
     function addLiquidity(uint256 amountA, uint256 amountB) external {
@@ -45,8 +42,6 @@ contract Pair {
         reserveB += amountB;
         totalShares += newShares;
         shares[msg.sender] += newShares;
-
-        console.log("Added liquidity: %s shares", newShares);
     }
 
     function removeLiquidity(uint256 liquidity) external {
@@ -66,7 +61,17 @@ contract Pair {
         console.log("Removing liquidity from pair");
     }
 
-    function swapTokenAToTokenB(uint256 amountIn) external {
+    function swap(address tokenIn, uint256 amountIn) external {
+        require(tokenIn == tokenA || tokenIn == tokenB, "Invalid input token");
+        if (tokenIn == tokenA) {
+            swapTokenAToTokenB(amountIn);
+        } else if (tokenIn == tokenB){
+            swapTokenBToTokenA(amountIn);
+        }
+    }
+
+
+    function swapTokenAToTokenB(uint256 amountIn) internal {
         require(amountIn > 0, "Invalid input amount");
         require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountIn), "Transfer failed");
 
@@ -82,7 +87,7 @@ contract Pair {
         console.log("Swapped %s TokenA for %s TokenB (%s fees)", amountIn, amountOut, fee);
     }
 
-    function swapTokenBToTokenA(uint256 amountIn) external {
+    function swapTokenBToTokenA(uint256 amountIn) internal {
         require(amountIn > 0, "Invalid input amount");
         require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountIn), "Transfer failed");
 
@@ -98,7 +103,7 @@ contract Pair {
         console.log("Swapped %s TokenB for %s TokenA (%s fees)", amountIn, amountOut, fee);
     }
 
-    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) public pure returns (uint256 amountOut, uint256 feeOut) {
+    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256 amountOut, uint256 feeOut) {
         require(amountIn > 0, "Amount in must be greater than zero");
         require(reserveIn > 0 && reserveOut > 0, "Reserves must be greater than zero");
 
@@ -111,6 +116,17 @@ contract Pair {
         return (amountOut - feeOut, feeOut);
     }
 
+    function getQuote(address tokenIn, uint256 amountIn) external view returns (uint256){
+        require(tokenIn == tokenA || tokenIn == tokenB, 'INVALID_TOKEN_IN');
+
+        if (tokenIn == tokenA) {
+            (uint256 amountOut, ) = getAmountOut(amountIn, reserveA, reserveB);
+            return amountOut;
+        } else {
+            (uint256 amountOut, ) = getAmountOut(amountIn, reserveB, reserveA);
+            return amountOut;
+        }
+    }
 
 }
 

@@ -85,10 +85,6 @@ describe("Pair", function () {
         }
     }
 
-    before(async () => {
-        //[owner, toto] = await ethers.getSigners();
-    })
-
     it("Get quote", async () => {
         const [ toto, tata ] = await getSigners();
 

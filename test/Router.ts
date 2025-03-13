@@ -6,23 +6,6 @@ import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 
 describe("Router contract", function () {
 
-  async function simulateQuote(amountIn: bigint, reserveIn: bigint, reserveOut: bigint) {
-    expect(amountIn > 0n, "Amount in must be greater than zero");
-    expect(reserveIn > 0n && reserveOut > 0n, "Reserves must be greater than zero");
-
-    // Uniswap V2 formula: amountOut = (amountIn * reserveOut) / (reserveIn + amountIn)
-    const amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
-
-    // Fee calculation: assuming a 0.10% fee (Uniswap V2 standard)
-    const feeOut = (amountOut * 10n) / 1000n;
-
-    return { amountOut: amountOut - feeOut, feeOut };
-  }
-
-  async function getSigners() {
-    return await ethers.getSigners()
-  }
-
   async function createTokens(airdropUsers: Addressable[], airdropAmount: number[]) {
 
     const tokenA = await hre.ethers.deployContract("DumbERC20", ["TokenA", "TKA"]);
@@ -68,23 +51,6 @@ describe("Router contract", function () {
 
     return { pair, pairTokenA: pairTokenA, pairTokenB: pairTokenB };
   }
-
-  async function depositLiquidity(pair: Pair, tokenA: DumbERC20, tokenB: DumbERC20, amountA: number, amountB: number) {
-    const pairAddress = await pair.getAddress();
-
-    await tokenA.approve(pairAddress, 100_000_000_000);
-    await tokenB.approve(pairAddress, 100_000_000_000);
-
-    if (await pair.tokenA() == await tokenA.getAddress()) {
-      await pair.addLiquidity(amountA, amountB);
-    } else {
-      await pair.addLiquidity(amountB, amountA);
-    }
-  }
-
-  before(async () => {
-    //[owner, toto] = await ethers.getSigners();
-  })
 
   it("Deploy Router contract", async () => {
     await createRouter();

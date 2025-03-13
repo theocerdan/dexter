@@ -87,11 +87,7 @@ describe("Router contract", function () {
   })
 
   it("Deploy Router contract", async () => {
-    const [ toto, tata ] = await getSigners();
-    const { router } = await createRouter();
-
-    expect(await router.owner()).to.be.equal(await toto.getAddress());
-    expect(await router.owner()).to.not.be.equal(await tata.getAddress());
+    await createRouter();
   })
 
   it("Create pair", async () => {

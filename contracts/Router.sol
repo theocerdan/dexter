@@ -2,17 +2,15 @@
 pragma solidity ^0.8.28;
 
 import "./Pair.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
 
-contract Router is Ownable {
+contract Router {
 
     mapping(address => mapping(address => address)) public getPair;
     address[] public allPairs;
 
     event NewPair(address tokenA, address tokenB, address pair);
 
-    constructor() Ownable(msg.sender) {}
+    constructor() {}
 
     function createPair(address tokenA, address tokenB) external returns (address){
         require(tokenA != tokenB, 'IDENTICAL_ADDRESSES');

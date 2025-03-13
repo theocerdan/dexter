@@ -2,6 +2,7 @@ import hre, {ethers} from "hardhat";
 import {DumbERC20, Pair, Router} from "../typechain-types";
 import {Addressable} from "ethers";
 import {expect} from "chai";
+import {SignerWithAddress} from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("Pair", function () {
 
@@ -68,16 +69,19 @@ describe("Pair", function () {
         return { pair, pairTokenA: pairTokenA, pairTokenB: pairTokenB };
     }
 
-    async function depositLiquidity(pair: Pair, tokenA: DumbERC20, tokenB: DumbERC20, amountA: number, amountB: number) {
+    async function depositLiquidity(pair: Pair, tokenA: DumbERC20, tokenB: DumbERC20, amountA: number, amountB: number, who?: SignerWithAddress) {
+        const accounts = await ethers.getSigners();
+        let account = who == undefined ? accounts[0] : who;
+
         const pairAddress = await pair.getAddress();
 
-        await tokenA.approve(pairAddress, 100_000_000_000);
-        await tokenB.approve(pairAddress, 100_000_000_000);
+        await tokenA.connect(account).approve(pairAddress, 100_000_000_000);
+        await tokenB.connect(account).approve(pairAddress, 100_000_000_000);
 
         if (await pair.tokenA() == await tokenA.getAddress()) {
-            await pair.addLiquidity(amountA, amountB);
+            await pair.connect(account).addLiquidity(amountA, amountB);
         } else {
-            await pair.addLiquidity(amountB, amountA);
+            await pair.connect(account).addLiquidity(amountB, amountA);
         }
     }
 
@@ -168,6 +172,10 @@ describe("Pair", function () {
         await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
         await pair.swap(await pairTokenA.getAddress(), 100);
+
+        const { amountOut: simulateAmountOut } = await simulateQuote(100n, 500n, 500n);
+        expect(await pair.reserveB()).to.be.equal(500n - simulateAmountOut);
+        expect(await pair.reserveA()).to.be.equal(600n);
     });
 
     it("Cannot swap with amountIn = zero", async () => {
@@ -253,32 +261,130 @@ describe("Pair", function () {
         await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 0, 0)).to.be.revertedWith("Insufficient liquidity provided");
     });
 
+    [[100, 100, 300, 300]].forEach(([amountA, amountB, amountA2, amountB2]) => {
+        it("Can deposit token", async () => {
+            const [ toto ] = await getSigners();
+            const balance = 100_000_000;
 
-    it("Can deposit token", async () => {
+            const { tokenA, tokenB } = await createTokens([toto], [balance]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+            await depositLiquidity(pair, pairTokenA, pairTokenB, amountA, amountB);
+
+            expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - amountA);
+            expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - amountB);
+
+            expect(await pair.reserveA()).to.be.equal(amountA);
+            expect(await pair.reserveB()).to.be.equal(amountB);
+
+            const firstTimeShares = Math.sqrt(amountA * amountB);
+
+            expect(await pair.totalShares()).to.be.equal(firstTimeShares);
+            expect(await pair.shares(await toto.getAddress())).to.be.equal(firstTimeShares);
+
+            await depositLiquidity(pair, pairTokenA, pairTokenB, amountA2, amountB2);
+
+            const secondTimeShares =  Math.min(
+                (amountA2 * Number(await pair.totalShares())) / Number(await pair.reserveA()),
+                (amountB2 * Number(await pair.totalShares())) / Number(await pair.reserveB())
+            ) + firstTimeShares;
+
+            expect(await pair.totalShares()).to.be.equal(secondTimeShares);
+            expect(await pair.reserveA()).to.be.equal(amountA + amountA2);
+            expect(await pair.reserveB()).to.be.equal(amountB + amountB2);
+            expect(await pair.shares(await toto.getAddress())).to.be.equal(secondTimeShares);
+            expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - (amountA + amountA2));
+            expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - (amountB + amountB2));
+        });
+
+    });
+
+    it("Can withdraw token", async () => {
+        const [ toto, tata ] = await getSigners();
+        const balance = 100_000_000;
+
+        const { tokenA, tokenB } = await createTokens([toto, tata], [balance, balance]);
+        const { router } = await createRouter();
+        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+        await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100, toto);
+        await depositLiquidity(pair, pairTokenA, pairTokenB, 200, 200, tata);
+
+        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+
+        expect(await tokenA.balanceOf(await tata.getAddress())).to.be.equal(balance - 200);
+        expect(await tokenB.balanceOf(await tata.getAddress())).to.be.equal(balance - 200);
+
+        expect(await pair.reserveA()).to.be.equal(300);
+        expect(await pair.reserveB()).to.be.equal(300);
+
+        const sharesToto = await pair.shares(await toto.getAddress());
+        const sharesTata = await pair.shares(await tata.getAddress());
+
+        await pair.connect(tata).removeLiquidity(sharesTata);
+
+        expect(await pair.shares(await toto.getAddress())).to.be.equal(sharesToto);
+
+        expect(await tokenA.balanceOf(await tata.getAddress())).to.be.equal(balance);
+        expect(await tokenB.balanceOf(await tata.getAddress())).to.be.equal(balance);
+
+        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+    });
+
+    it("Cannot withdraw more token than you have", async () => {
         const [ toto ] = await getSigners();
+        const balance = 100_000_000;
 
-        const { tokenA, tokenB } = await createTokens([toto], [150]);
+        const { tokenA, tokenB } = await createTokens([toto], [balance]);
         const { router } = await createRouter();
         const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
 
         await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100);
 
-        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(50);
-        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(50);
+        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
 
         expect(await pair.reserveA()).to.be.equal(100);
         expect(await pair.reserveB()).to.be.equal(100);
 
-        const firstTimeShares = Math.sqrt(100 * 100);
+        const sharesToto = await pair.shares(await toto.getAddress());
 
-        expect(await pair.totalShares()).to.be.equal(firstTimeShares);
+        await expect(pair.removeLiquidity(sharesToto + 100n)).to.be.revertedWith("Insufficient shares");
 
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 25, 25);
+        expect(await pair.shares(await toto.getAddress())).to.be.equal(sharesToto);
 
-        // reprendre ici
-        // deuxieme deposit formule de calcul
+        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
     });
 
+    it("Can withdraw partial shares", async () => {
+        const [ toto ] = await getSigners();
+        const balance = 100_000_000;
+
+        const { tokenA, tokenB } = await createTokens([toto], [balance]);
+        const { router } = await createRouter();
+        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+        await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100);
+
+        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+
+        expect(await pair.reserveA()).to.be.equal(100);
+        expect(await pair.reserveB()).to.be.equal(100);
+
+        const sharesToto = await pair.shares(await toto.getAddress());
+
+        await pair.removeLiquidity(sharesToto / 2n);
+
+        expect(await pair.shares(await toto.getAddress())).to.be.equal(sharesToto / 2n);
+
+        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 50);
+        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 50);
+    });
 
 
 });

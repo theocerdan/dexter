@@ -3,7 +3,6 @@ pragma solidity ^0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
-import "hardhat/console.sol";
 
 contract Pair {
 
@@ -45,7 +44,7 @@ contract Pair {
     }
 
     function removeLiquidity(uint256 liquidity) external {
-        require(shares[msg.sender] >= liquidity, "Insufficient liquidity");
+        require(shares[msg.sender] >= liquidity, "Insufficient shares");
 
         uint256 amountA = (liquidity * reserveA) / totalShares;
         uint256 amountB = (liquidity * reserveB) / totalShares;
@@ -57,8 +56,6 @@ contract Pair {
         reserveB -= amountB;
         totalShares -= liquidity;
         shares[msg.sender] -= liquidity;
-
-        console.log("Removing liquidity from pair");
     }
 
     function swap(address tokenIn, uint256 amountIn) external {
@@ -83,8 +80,6 @@ contract Pair {
 
         reserveA += amountIn;
         reserveB -= amountOut;
-
-        console.log("Swapped %s TokenA for %s TokenB (%s fees)", amountIn, amountOut, fee);
     }
 
     function swapTokenBToTokenA(uint256 amountIn) internal {
@@ -99,8 +94,6 @@ contract Pair {
 
         reserveB += amountIn;
         reserveA -= amountOut;
-
-        console.log("Swapped %s TokenB for %s TokenA (%s fees)", amountIn, amountOut, fee);
     }
 
     function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256 amountOut, uint256 feeOut) {

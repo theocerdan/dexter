@@ -5,9 +5,6 @@ import '@typechain/hardhat'
 import '@nomicfoundation/hardhat-ethers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import 'hardhat-abi-exporter'
-import helpers from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import hre, {ethers} from "hardhat";
-import {parseEther} from "ethers";
 
 task(
     'block-number',

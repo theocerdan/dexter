@@ -151,7 +151,7 @@ describe("Router contract", function () {
       expect(bal_eth_after).to.be.lt(bal_eth_before);
   });
 
-    it.only('should forward a swap through uniswap v2 but user didn\t have enought ustd', async () => {
+    it('should forward a swap through uniswap v2 but user didn\t have enought ustd', async () => {
         const { router } = await createRouter();
 
         const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';

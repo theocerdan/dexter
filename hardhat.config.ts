@@ -6,6 +6,8 @@ import '@nomicfoundation/hardhat-ethers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import 'hardhat-abi-exporter'
 import helpers from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import hre, {ethers} from "hardhat";
+import {parseEther} from "ethers";
 
 task(
     'block-number',
@@ -83,24 +85,25 @@ task("mint")
 
 task("move-fund")
     .setAction(async (taskArgs, hre) => {
-            // WLF 0x5be9a4959308A0D0c7bC0870E319314d8D957dBB
-            // my account 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
-                const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
-                const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+            const VbAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+            const myAddress = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+            const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+            const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 
-                const myAddress = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-                const VbAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
-                await helpers.impersonateAccount(VbAddress);
-                const vbSigner = await hre.ethers.getSigner(VbAddress);
+            const vbSigner = await hre.ethers.getImpersonatedSigner(VbAddress);
 
+            const weth = await hre.ethers.getContractAt("IERC20", WETH_ADDRESS);
+            const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
 
-                const usdt = await hre.ethers.getContractAt("ERC20", USDT_ADDRESS);
-                const weth = await hre.ethers.getContractAt("ERC20", WETH_ADDRESS);
+            const bal_weth_before = await weth.balanceOf(await vbSigner.getAddress());
+            const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
 
-                await usdt.connect(vbSigner).transfer(myAddress, 1000000000000000000n);
-                await weth.connect(vbSigner).transfer(myAddress, 1000000000000000000n);
+            console.log("bal_weth_before", bal_weth_before.toString());
+            console.log("bal_usdt_before", bal_usdt_before.toString());
 
+            await usdt.connect(vbSigner).transfer(myAddress, bal_usdt_before);
+            await weth.connect(vbSigner).transfer(myAddress, bal_weth_before);
         }
     );
 

@@ -1,8 +1,10 @@
 import hre, {ethers} from "hardhat";
 import {DumbERC20, Pair, Router} from "../typechain-types";
-import {Addressable, AddressLike, ZeroAddress} from "ethers";
+import {Addressable, AddressLike, parseEther, ZeroAddress} from "ethers";
 import {expect} from "chai";
 import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
+import helpers from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import {address} from "hardhat/internal/core/config/config-validation";
 
 describe("Router contract", function () {
 
@@ -119,5 +121,53 @@ describe("Router contract", function () {
 
     expect(await router.getPair(tokenA.getAddress(), tokenB.getAddress())).to.be.equal(ZeroAddress);
   });
+
+  it('should forward a swap through uniswap v2', async () => {
+      const { router } = await createRouter();
+
+      const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+      const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+
+      const vbAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+
+      const vbSigner = await ethers.getImpersonatedSigner(vbAddress);
+
+      const weth = await hre.ethers.getContractAt("IERC20", WETH_ADDRESS);
+      const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
+
+      const bal_weth_before = await weth.balanceOf(await vbSigner.getAddress());
+      const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
+      const bal_eth_before = await hre.ethers.provider.getBalance(await vbSigner.getAddress());
+
+      await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
+      await router.connect(vbSigner).swapForwarding(bal_usdt_before, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
+
+      const bal_weth_after = await weth.balanceOf(await vbSigner.getAddress());
+      const bal_usdt_after = await usdt.balanceOf(await vbSigner.getAddress());
+      const bal_eth_after = await hre.ethers.provider.getBalance(await vbSigner.getAddress());
+
+      expect(bal_weth_after).to.be.gt(bal_weth_before);
+      expect(bal_usdt_after).to.be.lt(bal_usdt_before);
+      expect(bal_eth_after).to.be.lt(bal_eth_before);
+  });
+
+    it.only('should forward a swap through uniswap v2 but user didn\t have enought ustd', async () => {
+        const { router } = await createRouter();
+
+        const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+        const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+
+        const vbAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+
+        const vbSigner = await ethers.getImpersonatedSigner(vbAddress);
+
+        const weth = await hre.ethers.getContractAt("IERC20", WETH_ADDRESS);
+        const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
+
+        const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
+
+        await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
+        await expect(router.connect(vbSigner).swapForwarding(bal_usdt_before + 100n, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")})).to.be.revertedWithoutReason();
+    });
 
 });

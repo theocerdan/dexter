@@ -2,6 +2,8 @@
 
 This project is an Automated Market Maker (AMM) on the Ethereum blockchain, inspired by the Uniswap V2 model. It allows users to swap ERC20 tokens and liquidity providers to earn revenue through transaction fees.
 
+![img.png](img.png)
+
 ## Features
 
 - **Liquidity Providers**: Add and remove liquidity in a pool in exchange for a share of transaction fees.

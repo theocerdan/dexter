@@ -5,8 +5,7 @@ import '@typechain/hardhat'
 import '@nomicfoundation/hardhat-ethers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import 'hardhat-abi-exporter'
-import router from "./ignition/modules/Router";
-import {Router} from "./typechain-types";
+import helpers from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 task(
     'block-number',
@@ -26,6 +25,16 @@ task("balance", "Prints an account's balance")
     }
 );
 
+task("balanceERC20", "Prints an account's ERC20 balance")
+    .addParam("account", "The account's address")
+    .addParam("token", "The token's address")
+    .setAction(async (taskArgs, hre) => {
+      const token = await hre.ethers.getContractAt("ERC20", taskArgs.token);
+      const balance = await token.balanceOf(taskArgs.account);
+      console.log(balance.toString());
+    }
+);
+
 
 task("router")
     .setAction(async (taskArgs, hre) => {
@@ -34,17 +43,17 @@ task("router")
             const routerContract = await hre.ethers.getContractFactory("Router");
             const tokenContract = await hre.ethers.getContractFactory("DumbERC20");
 
-            const tokenA = await tokenContract.deploy("TokenA", "TKA");
-            const tokenB = await tokenContract.deploy("TokenB", "TKB");
-            const tokenC = await tokenContract.deploy("TokenC", "TKC");
-            const router = await routerContract.deploy();
+            const tokenA = await tokenContract.deploy("TokenA", "TKA", { maxFeePerGas: 110401668747 });
+            const tokenB = await tokenContract.deploy("TokenB", "TKB", { maxFeePerGas: 110401668747 });
+            const tokenC = await tokenContract.deploy("TokenC", "TKC", { maxFeePerGas: 110401668747 });
+            const router = await routerContract.deploy({ maxFeePerGas: 110401668747 });
 
             await tokenA.mint(address, 1000);
             await tokenB.mint(address, 1000);
 
             console.log("Contract TokenA deployed to address:", await tokenA.getAddress());
             console.log("Contract TokenB deployed to address:", await tokenB.getAddress());
-            console.log("Contract TokenB deployed to address:", await tokenC.getAddress());
+            console.log("Contract TokenC deployed to address:", await tokenC.getAddress());
             console.log("Contract Router deployed to address:", await router.getAddress());
 
             const pair1 = await router.createPair(await tokenA.getAddress(), await tokenB.getAddress());
@@ -72,16 +81,26 @@ task("mint")
             console.log("Minted 1000 tokens to", address);
         });
 
-task("get-pairs")
-    .addParam("target", "The contract's address")
+task("move-fund")
     .setAction(async (taskArgs, hre) => {
-            const router = await hre.ethers.getContractAt("Router", taskArgs.target);
+            // WLF 0x5be9a4959308A0D0c7bC0870E319314d8D957dBB
+            // my account 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 
-            const events = await router.queryFilter(router.filters.NewPair, 0, "latest");
+                const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+                const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 
-            events.forEach((event) => {
-                console.log(event.args.tokenA, event.args.tokenB, event.args.pair);
-            })
+                const myAddress = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+                const VbAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+                await helpers.impersonateAccount(VbAddress);
+                const vbSigner = await hre.ethers.getSigner(VbAddress);
+
+
+                const usdt = await hre.ethers.getContractAt("ERC20", USDT_ADDRESS);
+                const weth = await hre.ethers.getContractAt("ERC20", WETH_ADDRESS);
+
+                await usdt.connect(vbSigner).transfer(myAddress, 1000000000000000000n);
+                await weth.connect(vbSigner).transfer(myAddress, 1000000000000000000n);
+
         }
     );
 
@@ -100,6 +119,14 @@ task("remove-allowance")
 
 const config: HardhatUserConfig = {
   solidity: "0.8.28",
+    networks: {
+        hardhat: {
+            forking: {
+                url: "https://mainnet.infura.io/v3/7763ecedc8474ba6a5ea95274a9dd3f0",
+                blockNumber: 13400000
+            }
+        }
+    }
 };
 
 export default config;

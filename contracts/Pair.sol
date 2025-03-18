@@ -16,6 +16,9 @@ contract Pair {
     mapping(address => uint256) public shares;
     uint256 public totalShares;
 
+    event AddLiquidity(address sender, uint256 amountA, uint256 amountB);
+    event RemoveLiquidity(address sender, uint256 shares);
+    event Swap(address sender, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
 
     constructor(address _tokenA, address _tokenB) {
         require(_tokenA != _tokenB, "Tokens must be different");
@@ -44,6 +47,8 @@ contract Pair {
         reserveB += amountB;
         totalShares += newShares;
         shares[msg.sender] += newShares;
+
+        emit AddLiquidity(msg.sender, amountA, amountB);
     }
 
     function removeLiquidity(uint256 liquidity) external {
@@ -59,6 +64,8 @@ contract Pair {
 
         IERC20(tokenA).safeTransfer(msg.sender, amountA);
         IERC20(tokenB).safeTransfer(msg.sender, amountB);
+
+        emit RemoveLiquidity(msg.sender, liquidity);
     }
 
     function swap(address tokenIn, uint256 amountIn) external {
@@ -82,6 +89,7 @@ contract Pair {
         reserveB -= amountOut;
 
         IERC20(tokenB).safeTransfer(msg.sender, amountOut);
+        emit Swap(msg.sender, tokenA, tokenB, amountIn, amountOut);
     }
 
     function swapTokenBToTokenA(uint256 amountIn) internal {
@@ -95,6 +103,7 @@ contract Pair {
         reserveA -= amountOut;
 
         IERC20(tokenA).safeTransfer(msg.sender, amountOut);
+        emit Swap(msg.sender, tokenB, tokenA, amountIn, amountOut);
     }
 
     function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256 amountOut) {

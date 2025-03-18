@@ -6,7 +6,6 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Pair {
-
     using SafeERC20 for IERC20;
 
     address public tokenA;
@@ -110,9 +109,11 @@ contract Pair {
         require(amountIn > 0, "Amount in must be greater than zero");
         require(reserveIn > 0 && reserveOut > 0, "Reserves must be greater than zero");
 
-        amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
+        uint amountInWithFee = amountIn * 997;
+        uint numerator = amountInWithFee * reserveOut;
+        uint denominator = reserveIn * 1000 + amountInWithFee;
 
-        return (amountOut);
+        return (numerator / denominator);
     }
 
     function getQuote(address tokenIn, uint256 amountIn) external view returns (uint256){

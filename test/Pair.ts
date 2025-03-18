@@ -11,10 +11,11 @@ describe("Pair", function () {
         expect(amountIn > 0n, "Amount in must be greater than zero");
         expect(reserveIn > 0n && reserveOut > 0n, "Reserves must be greater than zero");
 
-        // Uniswap V2 formula: amountOut = (amountIn * reserveOut) / (reserveIn + amountIn)
-        const amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
+        const amountInWithFee = amountIn * 997n;
+        const numerator = amountInWithFee * reserveOut;
+        const denominator = reserveIn * 1000n + amountInWithFee;
 
-        return { amountOut: amountOut };
+        return { amountOut: numerator / denominator };
     }
 
     async function getSigners() {
@@ -265,7 +266,7 @@ describe("Pair", function () {
     });
 
     [[100, 100, 300, 300]].forEach(([amountA, amountB, amountA2, amountB2]) => {
-        it.only("Can deposit token", async () => {
+        it("Can deposit token", async () => {
             const [ toto ] = await getSigners();
             const balance = 100_000_000;
 

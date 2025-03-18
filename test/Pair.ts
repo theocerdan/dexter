@@ -7,7 +7,7 @@ import {UNISWAP_V2_ROUTER_ADDRESS} from "./Constants";
 
 describe("Pair", function () {
 
-    async function simulateQuote(amountIn: bigint, reserveIn: bigint, reserveOut: bigint) {
+    function simulateQuote(amountIn: bigint, reserveIn: bigint, reserveOut: bigint) {
         expect(amountIn > 0n, "Amount in must be greater than zero");
         expect(reserveIn > 0n && reserveOut > 0n, "Reserves must be greater than zero");
 
@@ -170,6 +170,15 @@ describe("Pair", function () {
         const { amountOut: simulateAmountOut } = await simulateQuote(100n, 500n, 500n);
         expect(await pair.reserveB()).to.be.equal(500n - simulateAmountOut);
         expect(await pair.reserveA()).to.be.equal(600n);
+
+
+        const lastEvent = await pair.queryFilter(pair.filters.Swap());
+        expect(lastEvent.length).to.be.equal(1);
+        expect(lastEvent[0].args.amountIn).to.be.equal(100n);
+        expect(lastEvent[0].args.amountOut).to.be.equal(simulateAmountOut);
+        expect(lastEvent[0].args.sender).to.be.equal(await toto.getAddress());
+        expect(lastEvent[0].args.tokenIn).to.be.equal(await pairTokenA.getAddress());
+        expect(lastEvent[0].args.tokenOut).to.be.equal(await pairTokenB.getAddress());
     });
 
     it("Cannot swap with amountIn = zero", async () => {
@@ -256,7 +265,7 @@ describe("Pair", function () {
     });
 
     [[100, 100, 300, 300]].forEach(([amountA, amountB, amountA2, amountB2]) => {
-        it("Can deposit token", async () => {
+        it.only("Can deposit token", async () => {
             const [ toto ] = await getSigners();
             const balance = 100_000_000;
 
@@ -290,11 +299,23 @@ describe("Pair", function () {
             expect(await pair.shares(await toto.getAddress())).to.be.equal(secondTimeShares);
             expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - (amountA + amountA2));
             expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - (amountB + amountB2));
+
+            const lastEvent = await pair.queryFilter(pair.filters.AddLiquidity());
+
+            expect(lastEvent.length).to.be.equal(2);
+            expect(lastEvent[0].args.sender).to.be.equal(await toto.getAddress());
+            expect(lastEvent[0].args.amountA).to.be.equal(amountA);
+            expect(lastEvent[0].args.amountB).to.be.equal(amountB);
+
+            expect(lastEvent[1].args.sender).to.be.equal(await toto.getAddress());
+            expect(lastEvent[1].args.amountA).to.be.equal(amountA2);
+            expect(lastEvent[1].args.amountB).to.be.equal(amountB2);
+
         });
 
     });
 
-    it("Can withdraw token", async () => {
+    it("Can withdraw liquidity", async () => {
         const [ toto, tata ] = await getSigners();
         const balance = 100_000_000;
 
@@ -326,6 +347,11 @@ describe("Pair", function () {
 
         expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
         expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+
+        const lastEvent = await pair.queryFilter(pair.filters.RemoveLiquidity());
+        expect(lastEvent.length).to.be.equal(1);
+        expect(lastEvent[0].args.sender).to.be.equal(await tata.getAddress());
+        expect(lastEvent[0].args.shares).to.be.equal(sharesTata);
     });
 
     it("Cannot withdraw more token than you have", async () => {

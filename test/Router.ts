@@ -4,6 +4,7 @@ import {Addressable, parseEther, ZeroAddress} from "ethers";
 import {expect} from "chai";
 import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import {UNISWAP_V2_ROUTER_ADDRESS} from "./Constants";
+import {getSigners} from "@nomicfoundation/hardhat-ethers/internal/helpers";
 
 describe("Router contract", function () {
 
@@ -137,7 +138,7 @@ describe("Router contract", function () {
       const bal_eth_before = await hre.ethers.provider.getBalance(await vbSigner.getAddress());
 
       await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
-      await router.connect(vbSigner).swapForwarding(bal_usdt_before, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
+      await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
 
       const bal_weth_after = await weth.balanceOf(await vbSigner.getAddress());
       const bal_usdt_after = await usdt.balanceOf(await vbSigner.getAddress());
@@ -147,6 +148,70 @@ describe("Router contract", function () {
       expect(bal_usdt_after).to.be.lt(bal_usdt_before);
       expect(bal_eth_after).to.be.lt(bal_eth_before);
   });
+
+    it('should take a fees for forwarding', async () => {
+        const { router } = await createRouter();
+
+        const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+        const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+
+        const vbAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+
+        const vbSigner = await ethers.getImpersonatedSigner(vbAddress);
+
+        const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
+
+        const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
+
+        await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
+
+        const bal_eth_before = await hre.ethers.provider.getBalance(await router.getAddress());
+        await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
+
+        const bal_eth_after = await hre.ethers.provider.getBalance(await router.getAddress());
+
+        expect(bal_eth_before).to.be.equal(0);
+        expect(bal_eth_after).to.be.equal(ethers.parseEther("1.0"));
+    });
+
+    it('only can owner withdraw collected fees', async () => {
+        const { router } = await createRouter();
+        const [ toto ] = await getSigners(hre);
+
+        const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+        const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+
+        const vbAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+
+        const vbSigner = await ethers.getImpersonatedSigner(vbAddress);
+
+        const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
+
+        const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
+
+        await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
+
+        const bal_eth_before = await hre.ethers.provider.getBalance(await router.getAddress());
+
+        await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
+
+        const bal_eth_after = await hre.ethers.provider.getBalance(await router.getAddress());
+
+        expect(bal_eth_before).to.be.equal(0);
+        expect(bal_eth_after).to.be.equal(ethers.parseEther("1.0"));
+
+        await expect(router.connect(vbSigner).withdrawFees()).to.be.revertedWith("NOT_OWNER");
+
+        const bal_eth_owner_before_withdraw = await hre.ethers.provider.getBalance(await toto.getAddress());
+        await router.withdrawFees();
+
+        const bal_eth_after_withdraw = await hre.ethers.provider.getBalance(await router.getAddress());
+
+        const bal_eth_owner_after_withdraw = await hre.ethers.provider.getBalance(await toto.getAddress());
+        expect(bal_eth_after_withdraw).to.be.equal(0);
+        expect(bal_eth_owner_after_withdraw).to.be.greaterThan(bal_eth_owner_before_withdraw);
+    });
+
 
     it('should forward a swap through uniswap v2 but user didn\t have enought ustd', async () => {
         const { router } = await createRouter();

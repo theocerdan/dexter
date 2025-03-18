@@ -13,11 +13,13 @@ contract Router {
     mapping(address => mapping(address => address)) public getPair;
     address[] public allPairs;
     address public uniswapV2Router;
+    address public owner;
 
     event NewPair(address tokenA, address tokenB, address pair);
 
     constructor(address _uniswapV2Router) {
         uniswapV2Router = _uniswapV2Router;
+        owner = msg.sender;
     }
 
     function createPair(address tokenA, address tokenB) external {
@@ -46,5 +48,10 @@ contract Router {
         path[1] = tokenOut;
 
         IUniswapV2Router02(this.uniswapV2Router()).swapExactTokensForTokens(amountIn, 0, path, msg.sender, deadline);
+    }
+
+    function withdrawFees() external {
+        require(msg.sender == owner, 'NOT_OWNER');
+        payable(owner).transfer(address(this).balance);
     }
 }

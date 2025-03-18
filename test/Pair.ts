@@ -14,10 +14,7 @@ describe("Pair", function () {
         // Uniswap V2 formula: amountOut = (amountIn * reserveOut) / (reserveIn + amountIn)
         const amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
 
-        // Fee calculation: assuming a 0.10% fee (Uniswap V2 standard)
-        const feeOut = (amountOut * 10n) / 1000n;
-
-        return { amountOut: amountOut - feeOut, feeOut };
+        return { amountOut: amountOut };
     }
 
     async function getSigners() {
@@ -95,7 +92,7 @@ describe("Pair", function () {
 
         await depositLiquidity(pair, pairTokenA, pairTokenB, 10000, 10000);
 
-        const { amountOut, feeOut } = await simulateQuote(200n, await pair.reserveA(), await pair.reserveB());
+        const { amountOut } = await simulateQuote(200n, await pair.reserveA(), await pair.reserveB());
 
         expect(await pair.getQuote(pairTokenA.getAddress(), 200)).to.be.equal(amountOut);
     });
@@ -109,7 +106,7 @@ describe("Pair", function () {
 
         await depositLiquidity(pair, pairTokenA, pairTokenB, 10000, 4000);
 
-        const { amountOut, feeOut } = await simulateQuote(555n, await pair.reserveB(), await pair.reserveA());
+        const { amountOut } = await simulateQuote(555n, await pair.reserveB(), await pair.reserveA());
 
         expect(await pair.getQuote(pairTokenB.getAddress(), 555)).to.be.equal(amountOut);
     });

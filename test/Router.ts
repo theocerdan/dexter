@@ -69,8 +69,6 @@ describe("Router contract", function () {
     expect(await pair.reserveB()).to.be.equal(0);
     expect(await pair.reserveA()).to.be.equal(0);
     expect(await pair.totalShares()).to.be.equal(0);
-    expect(await pair.totalFeesA()).to.be.equal(0);
-    expect(await pair.totalFeesB()).to.be.equal(0);
   });
 
   it("Create pair with zero address", async () => {

@@ -36,6 +36,7 @@ task("balanceERC20", "Prints an account's ERC20 balance")
 
 
 task("router")
+    .addParam("uniswap", "The contract's address")
     .setAction(async (taskArgs, hre) => {
             const signer = await hre.ethers.getSigners();
             const address = await signer[0].getAddress();
@@ -45,7 +46,7 @@ task("router")
             const tokenA = await tokenContract.deploy("TokenA", "TKA", { maxFeePerGas: 110401668747 });
             const tokenB = await tokenContract.deploy("TokenB", "TKB", { maxFeePerGas: 110401668747 });
             const tokenC = await tokenContract.deploy("TokenC", "TKC", { maxFeePerGas: 110401668747 });
-            const router = await routerContract.deploy({ maxFeePerGas: 110401668747 });
+            const router = await routerContract.deploy(taskArgs.uniswap, { maxFeePerGas: 110401668747 });
 
             await tokenA.mint(address, 1000);
             await tokenB.mint(address, 1000);

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
 import "./Pair.sol";
-import {IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { IUniswapV2Router02 } from "./interfaces/IUniswapV2Router02.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract Router {
@@ -16,11 +16,11 @@ contract Router {
 
     event NewPair(address tokenA, address tokenB, address pair);
 
-    constructor() {
-        uniswapV2Router = address(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+    constructor(address _uniswapV2Router) {
+        uniswapV2Router = _uniswapV2Router;
     }
 
-    function createPair(address tokenA, address tokenB) external returns (address){
+    function createPair(address tokenA, address tokenB) external {
         require(tokenA != tokenB, 'IDENTICAL_ADDRESSES');
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         require(token0 != address(0), 'ZERO_ADDRESS');
@@ -33,7 +33,6 @@ contract Router {
         allPairs.push(pair);
 
         emit NewPair(tokenA, tokenB, pair);
-        return pair;
     }
 
 

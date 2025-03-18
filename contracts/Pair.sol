@@ -13,8 +13,6 @@ contract Pair {
     address public tokenB;
     uint256 public reserveA;
     uint256 public reserveB;
-    uint256 public totalFeesA;
-    uint256 public totalFeesB;
     mapping(address => uint256) public shares;
     uint256 public totalShares;
 
@@ -77,10 +75,8 @@ contract Pair {
         require(amountIn > 0, "Invalid input amount");
         IERC20(tokenA).safeTransferFrom(msg.sender, address(this), amountIn);
 
-        (uint256 amountOut, uint256 fee) = getAmountOut(amountIn, reserveA, reserveB);
+        uint256 amountOut = getAmountOut(amountIn, reserveA, reserveB);
         require(amountOut > 0, "Insufficient output amount");
-
-        totalFeesB += fee;
 
         reserveA += amountIn;
         reserveB -= amountOut;
@@ -92,10 +88,8 @@ contract Pair {
         require(amountIn > 0, "Invalid input amount");
         IERC20(tokenB).safeTransferFrom(msg.sender, address(this), amountIn);
 
-        (uint256 amountOut, uint256 fee) = getAmountOut(amountIn, reserveB, reserveA);
+        uint256 amountOut = getAmountOut(amountIn, reserveB, reserveA);
         require(amountOut > 0, "Insufficient output amount");
-
-        totalFeesA += fee;
 
         reserveB += amountIn;
         reserveA -= amountOut;
@@ -103,28 +97,22 @@ contract Pair {
         IERC20(tokenA).safeTransfer(msg.sender, amountOut);
     }
 
-    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256 amountOut, uint256 feeOut) {
+    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256 amountOut) {
         require(amountIn > 0, "Amount in must be greater than zero");
         require(reserveIn > 0 && reserveOut > 0, "Reserves must be greater than zero");
 
-        // Uniswap V2 formula: amountOut = (amountIn * reserveOut) / (reserveIn + amountIn)
         amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
 
-        // Fee calculation: assuming a 0.10% fee (Uniswap V2 standard)
-        feeOut = (amountOut * 10) / 1000;
-
-        return (amountOut - feeOut, feeOut);
+        return (amountOut);
     }
 
     function getQuote(address tokenIn, uint256 amountIn) external view returns (uint256){
         require(tokenIn == tokenA || tokenIn == tokenB, 'INVALID_TOKEN_IN');
 
         if (tokenIn == tokenA) {
-            (uint256 amountOut, ) = getAmountOut(amountIn, reserveA, reserveB);
-            return amountOut;
+            return getAmountOut(amountIn, reserveA, reserveB);
         } else {
-            (uint256 amountOut, ) = getAmountOut(amountIn, reserveB, reserveA);
-            return amountOut;
+            return getAmountOut(amountIn, reserveB, reserveA);
         }
     }
 

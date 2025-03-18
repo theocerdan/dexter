@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract Pair {
+
+    using SafeERC20 for IERC20;
 
     address public tokenA;
     address public tokenB;
@@ -17,13 +19,15 @@ contract Pair {
 
 
     constructor(address _tokenA, address _tokenB) {
+        require(_tokenA != _tokenB, "Tokens must be different");
+        require(_tokenA != address(0), "Invalid token address");
         tokenA = _tokenA;
         tokenB = _tokenB;
     }
 
     function addLiquidity(uint256 amountA, uint256 amountB) external {
-        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), "Transfer failed");
-        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), "Transfer failed");
+        require(IERC20(tokenA).safeTransferFrom(msg.sender, address(this), amountA), "Transfer failed");
+        require(IERC20(tokenB).safeTransferFrom(msg.sender, address(this), amountB), "Transfer failed");
 
         uint256 newShares;
         if (totalShares == 0) {
@@ -49,13 +53,13 @@ contract Pair {
         uint256 amountA = (liquidity * reserveA) / totalShares;
         uint256 amountB = (liquidity * reserveB) / totalShares;
 
-        require(IERC20(tokenA).transfer(msg.sender, amountA), "Transfer failed");
-        require(IERC20(tokenB).transfer(msg.sender, amountB), "Transfer failed");
-
         reserveA -= amountA;
         reserveB -= amountB;
         totalShares -= liquidity;
         shares[msg.sender] -= liquidity;
+
+        require(IERC20(tokenA).safeTransfer(msg.sender, amountA), "Transfer failed");
+        require(IERC20(tokenB).safeTransfer(msg.sender, amountB), "Transfer failed");
     }
 
     function swap(address tokenIn, uint256 amountIn) external {
@@ -70,30 +74,32 @@ contract Pair {
 
     function swapTokenAToTokenB(uint256 amountIn) internal {
         require(amountIn > 0, "Invalid input amount");
-        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountIn), "Transfer failed");
+        require(IERC20(tokenA).safeTransferFrom(msg.sender, address(this), amountIn), "Transfer failed");
 
         (uint256 amountOut, uint256 fee) = getAmountOut(amountIn, reserveA, reserveB);
         require(amountOut > 0, "Insufficient output amount");
-        require(IERC20(tokenB).transfer(msg.sender, amountOut), "Transfer failed");
 
         totalFeesB += fee;
 
         reserveA += amountIn;
         reserveB -= amountOut;
+
+        require(IERC20(tokenB).safeTransferFrom(msg.sender, amountOut), "Transfer failed");
     }
 
     function swapTokenBToTokenA(uint256 amountIn) internal {
         require(amountIn > 0, "Invalid input amount");
-        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountIn), "Transfer failed");
+        require(IERC20(tokenB).safeTransferFrom(msg.sender, address(this), amountIn), "Transfer failed");
 
         (uint256 amountOut, uint256 fee) = getAmountOut(amountIn, reserveB, reserveA);
         require(amountOut > 0, "Insufficient output amount");
-        require(IERC20(tokenA).transfer(msg.sender, amountOut), "Transfer failed");
 
         totalFeesA += fee;
 
         reserveB += amountIn;
         reserveA -= amountOut;
+
+        require(IERC20(tokenA).safeTransfer(msg.sender, amountOut), "Transfer failed");
     }
 
     function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256 amountOut, uint256 feeOut) {

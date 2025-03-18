@@ -2,15 +2,13 @@
 pragma solidity ^0.8.28;
 
 import "./Pair.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract Router {
 
     using SafeERC20 for IERC20;
-
 
     mapping(address => mapping(address => address)) public getPair;
     address[] public allPairs;
@@ -42,7 +40,7 @@ contract Router {
     function swapForwarding(uint256 amountIn, address tokenIn, address tokenOut, uint256 deadline) external payable {
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(tokenIn).safeIncreaseAllowance(this.uniswapV2Router(), amountIn);
-            require(msg.value == 1 ether, 'The fees is 1 ETH');
+        require(msg.value == 1 ether, 'The fees is 1 ETH');
 
         address[] memory path = new address[](2);
         path[0] = tokenIn;

@@ -141,7 +141,7 @@ describe("Pair", function () {
         const { router } = await createRouter();
         const { pair } = await createPair(router, tokenA, tokenB);
 
-        await expect(pair.getQuote(tokenC.getAddress(), 10)).to.be.revertedWith("INVALID_TOKEN_IN");
+        await expect(pair.getQuote(tokenC.getAddress(), 10)).to.be.revertedWith("Invalid input token");
     });
 
     it("Swap a non existing pool", async () => {

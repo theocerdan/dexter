@@ -23,10 +23,10 @@ contract Router {
     }
 
     function createPair(address tokenA, address tokenB) external {
-        require(tokenA != tokenB, 'IDENTICAL_ADDRESSES');
+        require(tokenA != tokenB, 'Address must be different');
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        require(token0 != address(0), 'ZERO_ADDRESS');
-        require(getPair[token0][token1] == address(0), 'PAIR_EXISTS');
+        require(token0 != address(0), 'Invalid token address');
+        require(getPair[token0][token1] == address(0), 'This pair already exists');
 
         address pair = address(new Pair(token0, token1));
 
@@ -51,7 +51,7 @@ contract Router {
     }
 
     function withdrawFees() external {
-        require(msg.sender == owner, 'NOT_OWNER');
+        require(msg.sender == owner, 'You are not the owner');
         payable(owner).transfer(address(this).balance);
     }
 }

@@ -76,14 +76,14 @@ describe("Router contract", function () {
     const { tokenA } = await createTokens([], []);
     const { router } = await createRouter();
 
-    await expect(router.createPair(tokenA.getAddress(), ZeroAddress)).to.be.revertedWith("ZERO_ADDRESS");
+    await expect(router.createPair(tokenA.getAddress(), ZeroAddress)).to.be.revertedWith("Invalid token address");
   });
 
   it("Create pair with identical addresses", async () => {
     const { tokenA } = await createTokens([], []);
     const { router } = await createRouter();
 
-    await expect(router.createPair(tokenA.getAddress(), tokenA.getAddress())).to.be.revertedWith("IDENTICAL_ADDRESSES");
+    await expect(router.createPair(tokenA.getAddress(), tokenA.getAddress())).to.be.revertedWith("Address must be different");
   });
 
   it("Create already existing pair ", async () => {
@@ -91,7 +91,7 @@ describe("Router contract", function () {
     const { router } = await createRouter();
 
     await router.createPair(tokenA.getAddress(), tokenB.getAddress());
-    await expect(router.createPair(tokenA.getAddress(), tokenB.getAddress())).to.be.revertedWith("PAIR_EXISTS");
+    await expect(router.createPair(tokenA.getAddress(), tokenB.getAddress())).to.be.revertedWith("This pair already exists");
   });
 
   it("Pair exist in the route table (getPair)", async () => {
@@ -200,7 +200,7 @@ describe("Router contract", function () {
         expect(bal_eth_before).to.be.equal(0);
         expect(bal_eth_after).to.be.equal(ethers.parseEther("1.0"));
 
-        await expect(router.connect(vbSigner).withdrawFees()).to.be.revertedWith("NOT_OWNER");
+        await expect(router.connect(vbSigner).withdrawFees()).to.be.revertedWith("You are not the owner");
 
         const bal_eth_owner_before_withdraw = await hre.ethers.provider.getBalance(await toto.getAddress());
         await router.withdrawFees();

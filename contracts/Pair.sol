@@ -117,7 +117,7 @@ contract Pair {
     }
 
     function getQuote(address tokenIn, uint256 amountIn) external view returns (uint256){
-        require(tokenIn == tokenA || tokenIn == tokenB, 'INVALID_TOKEN_IN');
+        require(tokenIn == tokenA || tokenIn == tokenB, 'Invalid input token');
 
         if (tokenIn == tokenA) {
             return getAmountOut(amountIn, reserveA, reserveB);

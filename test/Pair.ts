@@ -3,6 +3,7 @@ import {DumbERC20, Pair, Router} from "../typechain-types";
 import {Addressable} from "ethers";
 import {expect} from "chai";
 import {SignerWithAddress} from "@nomicfoundation/hardhat-ethers/signers";
+import {UNISWAP_V2_ROUTER_ADDRESS} from "./Constants";
 
 describe("Pair", function () {
 
@@ -43,7 +44,7 @@ describe("Pair", function () {
 
     async function createRouter() {
 
-        const router = await hre.ethers.deployContract("Router");
+        const router = await hre.ethers.deployContract("Router", [UNISWAP_V2_ROUTER_ADDRESS]);
 
         return { router };
     }

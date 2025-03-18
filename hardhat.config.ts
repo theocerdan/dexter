@@ -123,7 +123,8 @@ const config: HardhatUserConfig = {
         hardhat: {
             forking: {
                 url: "https://mainnet.infura.io/v3/7763ecedc8474ba6a5ea95274a9dd3f0",
-                blockNumber: 13400000
+                blockNumber: 13400000,
+                enabled: true
             }
         }
     }

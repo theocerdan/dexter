@@ -1,10 +1,9 @@
 import hre, {ethers} from "hardhat";
-import {DumbERC20, Pair, Router} from "../typechain-types";
-import {Addressable, AddressLike, parseEther, ZeroAddress} from "ethers";
+import {DumbERC20, Router} from "../typechain-types";
+import {Addressable, parseEther, ZeroAddress} from "ethers";
 import {expect} from "chai";
 import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
-import helpers from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import {address} from "hardhat/internal/core/config/config-validation";
+import {UNISWAP_V2_ROUTER_ADDRESS} from "./Constants";
 
 describe("Router contract", function () {
 
@@ -28,7 +27,7 @@ describe("Router contract", function () {
 
   async function createRouter() {
 
-    const router = await hre.ethers.deployContract("Router");
+    const router = await hre.ethers.deployContract("Router", [UNISWAP_V2_ROUTER_ADDRESS]);
 
     return { router };
   }

@@ -119,7 +119,7 @@ describe("Pair", function () {
         const { router } = await createRouter();
         const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
 
-        await expect(pair.getQuote(pairTokenA.getAddress(), 200)).to.be.revertedWith("Reserves must be greater than zero");
+        await expect(pair.getQuote(pairTokenA.getAddress(), 200)).to.be.revertedWithCustomError(pair, "NotEnoughReserve");
     });
 
 
@@ -130,7 +130,7 @@ describe("Pair", function () {
         const { router } = await createRouter();
         const { pair, pairTokenA } = await createPair(router, tokenA, tokenB);
 
-        await expect(pair.getQuote(pairTokenA.getAddress(), 0)).to.be.revertedWith("Amount in must be greater than zero");
+        await expect(pair.getQuote(pairTokenA.getAddress(), 0)).to.be.revertedWithCustomError(pair, "InvalidInputAmount");
     });
 
     it("Get quote without the good token", async () => {
@@ -141,7 +141,7 @@ describe("Pair", function () {
         const { router } = await createRouter();
         const { pair } = await createPair(router, tokenA, tokenB);
 
-        await expect(pair.getQuote(tokenC.getAddress(), 10)).to.be.revertedWith("Invalid input token");
+        await expect(pair.getQuote(tokenC.getAddress(), 10)).to.be.revertedWithCustomError(pair, "InvalidInputToken");
     });
 
     it("Swap a non existing pool", async () => {
@@ -154,7 +154,7 @@ describe("Pair", function () {
 
         const { pair } = await createPair(router, tokenA, tokenB);
 
-        await expect(pair.swap(await tokenC.getAddress(), 100)).to.be.revertedWith("Invalid input token");
+        await expect(pair.swap(await tokenC.getAddress(), 100)).to.be.revertedWithCustomError(pair, "InvalidInputToken");
     });
 
     it("Can swap", async () => {
@@ -191,7 +191,7 @@ describe("Pair", function () {
 
         await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
-        await expect(pair.swap(await pairTokenA.getAddress(), 0)).to.be.revertedWith("Invalid input amount");
+        await expect(pair.swap(await pairTokenA.getAddress(), 0)).to.be.revertedWithCustomError(pair, "InvalidInputAmount");
     });
 
     it("Cannot swap with bad token address", async () => {
@@ -204,7 +204,7 @@ describe("Pair", function () {
 
         await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
-        await expect(pair.swap(await tokenC.getAddress(), 100)).to.be.revertedWith("Invalid input token");
+        await expect(pair.swap(await tokenC.getAddress(), 100)).to.be.revertedWithCustomError(pair, "InvalidInputToken");
     });
 
     it("Cannot swap because not user don't have enought token", async () => {
@@ -241,7 +241,7 @@ describe("Pair", function () {
 
         await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
-        await expect(pair.swap(await pairTokenA.getAddress(), 1)).to.be.revertedWith("Insufficient output amount");
+        await expect(pair.swap(await pairTokenA.getAddress(), 1)).to.be.revertedWithCustomError(pair, "InvalidOutputAmount");
     });
 
     it("Cannot deposit liquidity because user don't have enought token", async () => {
@@ -262,7 +262,7 @@ describe("Pair", function () {
         const { router } = await createRouter();
         const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
 
-        await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 0, 0)).to.be.revertedWith("Insufficient liquidity provided");
+        await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 0, 0)).to.be.revertedWithCustomError(pair, "NotEnoughLiquidityProvided");
     });
 
     [[100, 100, 300, 300]].forEach(([amountA, amountB, amountA2, amountB2]) => {
@@ -373,7 +373,7 @@ describe("Pair", function () {
 
         const sharesToto = await pair.shares(await toto.getAddress());
 
-        await expect(pair.removeLiquidity(sharesToto + 100n)).to.be.revertedWith("Insufficient shares");
+        await expect(pair.removeLiquidity(sharesToto + 100n)).to.be.revertedWithCustomError(pair, "NotEnoughShares");
 
         expect(await pair.shares(await toto.getAddress())).to.be.equal(sharesToto);
 

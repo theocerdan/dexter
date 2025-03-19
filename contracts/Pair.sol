@@ -20,9 +20,21 @@ contract Pair {
     event RemoveLiquidity(address sender, uint256 shares);
     event Swap(address sender, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
 
+    error IdenticalPairAddress(address addressA, address addressB);
+    error ZeroPairAddress();
+
+    error NotEnoughLiquidityProvided();
+    error NotEnoughShares();
+    error NotEnoughReserve();
+
+    error InvalidInputToken();
+    error InvalidInputAmount();
+
+    error InvalidOutputAmount();
+
     constructor(address _tokenA, address _tokenB) {
-        require(_tokenA != _tokenB, "Tokens must be different");
-        require(_tokenA != address(0), "Invalid token address");
+        if (_tokenA == _tokenB) revert IdenticalPairAddress(_tokenA, _tokenB);
+        if (_tokenA == address(0)) revert ZeroPairAddress();
         tokenA = _tokenA;
         tokenB = _tokenB;
     }
@@ -42,7 +54,7 @@ contract Pair {
             );
         }
 
-        require(newShares > 0, "Insufficient liquidity provided");
+        if (newShares <= 0) revert NotEnoughLiquidityProvided();
 
         reserveA += amountA;
         reserveB += amountB;
@@ -53,7 +65,7 @@ contract Pair {
     }
 
     function removeLiquidity(uint256 liquidity) external {
-        require(shares[msg.sender] >= liquidity, "Insufficient shares");
+        if (shares[msg.sender] < liquidity) revert NotEnoughShares();
 
         uint256 amountA = (liquidity * reserveA) / totalShares;
         uint256 amountB = (liquidity * reserveB) / totalShares;
@@ -70,7 +82,8 @@ contract Pair {
     }
 
     function swap(address tokenIn, uint256 amountIn) external {
-        require(tokenIn == tokenA || tokenIn == tokenB, "Invalid input token");
+        if (tokenIn != tokenA && tokenIn != tokenB) revert InvalidInputToken();
+
         if (tokenIn == tokenA) {
             swapTokenAToTokenB(amountIn);
         } else if (tokenIn == tokenB){
@@ -80,11 +93,11 @@ contract Pair {
 
 
     function swapTokenAToTokenB(uint256 amountIn) internal {
-        require(amountIn > 0, "Invalid input amount");
+        if (amountIn <= 0) revert InvalidInputAmount();
         IERC20(tokenA).safeTransferFrom(msg.sender, address(this), amountIn);
 
         uint256 amountOut = getAmountOut(amountIn, reserveA, reserveB);
-        require(amountOut > 0, "Insufficient output amount");
+        if (amountOut <= 0) revert InvalidOutputAmount();
 
         reserveA += amountIn;
         reserveB -= amountOut;
@@ -94,11 +107,11 @@ contract Pair {
     }
 
     function swapTokenBToTokenA(uint256 amountIn) internal {
-        require(amountIn > 0, "Invalid input amount");
+        if (amountIn <= 0) revert InvalidInputAmount();
         IERC20(tokenB).safeTransferFrom(msg.sender, address(this), amountIn);
 
         uint256 amountOut = getAmountOut(amountIn, reserveB, reserveA);
-        require(amountOut > 0, "Insufficient output amount");
+        if (amountOut <= 0) revert InvalidOutputAmount();
 
         reserveB += amountIn;
         reserveA -= amountOut;
@@ -108,8 +121,8 @@ contract Pair {
     }
 
     function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256 amountOut) {
-        require(amountIn > 0, "Amount in must be greater than zero");
-        require(reserveIn > 0 && reserveOut > 0, "Reserves must be greater than zero");
+        if (amountIn <= 0) revert InvalidInputAmount();
+        if (reserveIn <= 0 && reserveOut <= 0) revert NotEnoughReserve();
 
         uint amountInWithFee = amountIn * 997;
         uint numerator = amountInWithFee * reserveOut;
@@ -119,7 +132,7 @@ contract Pair {
     }
 
     function getQuote(address tokenIn, uint256 amountIn) external view returns (uint256){
-        require(tokenIn == tokenA || tokenIn == tokenB, 'Invalid input token');
+        if (tokenIn != tokenA && tokenIn != tokenB) revert InvalidInputToken();
 
         if (tokenIn == tokenA) {
             return getAmountOut(amountIn, reserveA, reserveB);

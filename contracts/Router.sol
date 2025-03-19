@@ -17,16 +17,22 @@ contract Router {
 
     event NewPair(address tokenA, address tokenB, address pair);
 
+    error Unauthorized(address sender, address owner);
+    error UnsufficientEther(uint256 value, uint256 expected);
+    error PairAlreadyExist();
+    error IdenticalPairAddress(address addressA, address addressB);
+    error ZeroPairAddress();
+
     constructor(address _uniswapV2Router) {
         uniswapV2Router = _uniswapV2Router;
         owner = msg.sender;
     }
 
     function createPair(address tokenA, address tokenB) external {
-        require(tokenA != tokenB, 'Address must be different');
+        if (tokenA == tokenB) revert IdenticalPairAddress(tokenA, tokenB);
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        require(token0 != address(0), 'Invalid token address');
-        require(getPair[token0][token1] == address(0), 'This pair already exists');
+        if (token0 == address(0)) revert ZeroPairAddress();
+        if (getPair[token0][token1] != address(0)) revert PairAlreadyExist();
 
         address pair = address(new Pair(token0, token1));
 
@@ -41,7 +47,7 @@ contract Router {
     function swapForwarding(uint256 amountIn, address tokenIn, address tokenOut, uint256 deadline) external payable {
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(tokenIn).safeIncreaseAllowance(this.uniswapV2Router(), amountIn);
-        require(msg.value == 1 ether, 'The fees is 1 ETH');
+        if (msg.value != 1 ether) revert UnsufficientEther(msg.value, 1 ether);
 
         address[] memory path = new address[](2);
         path[0] = tokenIn;
@@ -51,7 +57,7 @@ contract Router {
     }
 
     function withdrawFees() external {
-        require(msg.sender == owner, 'You are not the owner');
+        if (msg.sender != owner) revert Unauthorized(msg.sender, owner);
         payable(owner).transfer(address(this).balance);
     }
 }

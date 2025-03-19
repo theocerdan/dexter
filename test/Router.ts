@@ -1,5 +1,5 @@
 import hre, {ethers} from "hardhat";
-import {DumbERC20, Router} from "../typechain-types";
+import { DumbERC20, Router} from "../typechain-types";
 import {Addressable, parseEther, ZeroAddress} from "ethers";
 import {expect} from "chai";
 import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
@@ -76,14 +76,14 @@ describe("Router contract", function () {
     const { tokenA } = await createTokens([], []);
     const { router } = await createRouter();
 
-    await expect(router.createPair(tokenA.getAddress(), ZeroAddress)).to.be.revertedWith("Invalid token address");
+    await expect(router.createPair(tokenA.getAddress(), ZeroAddress)).to.be.revertedWithCustomError(router, "ZeroPairAddress")
   });
 
   it("Create pair with identical addresses", async () => {
     const { tokenA } = await createTokens([], []);
     const { router } = await createRouter();
 
-    await expect(router.createPair(tokenA.getAddress(), tokenA.getAddress())).to.be.revertedWith("Address must be different");
+    await expect(router.createPair(tokenA.getAddress(), tokenA.getAddress())).to.be.revertedWithCustomError(router, "IdenticalPairAddress");
   });
 
   it("Create already existing pair ", async () => {
@@ -91,7 +91,7 @@ describe("Router contract", function () {
     const { router } = await createRouter();
 
     await router.createPair(tokenA.getAddress(), tokenB.getAddress());
-    await expect(router.createPair(tokenA.getAddress(), tokenB.getAddress())).to.be.revertedWith("This pair already exists");
+    await expect(router.createPair(tokenA.getAddress(), tokenB.getAddress())).to.be.revertedWithCustomError(router, "PairAlreadyExist");
   });
 
   it("Pair exist in the route table (getPair)", async () => {

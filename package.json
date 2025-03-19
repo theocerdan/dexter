@@ -24,6 +24,10 @@
   "dependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
     "@openzeppelin/contracts": "^5.2.0",
-    "big-integer": "^1.6.52"
+    "big-integer": "^1.6.52",
+    "dotenv": "^16.4.7"
+  },
+  "overrides": {
+    "hardhat-gas-reporter": "^2.2.2"
   }
 }

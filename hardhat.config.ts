@@ -5,6 +5,8 @@ import '@typechain/hardhat'
 import '@nomicfoundation/hardhat-ethers'
 import '@nomicfoundation/hardhat-chai-matchers'
 import 'hardhat-abi-exporter'
+import 'hardhat-gas-reporter'
+import 'dotenv/config'
 
 task(
     'block-number',
@@ -119,13 +121,26 @@ task("remove-allowance")
 
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.28",
+  solidity: {
+      version: "0.8.28",
+      settings: {
+          optimizer: {
+              enabled: true,
+              runs: 99999,
+          }
+      }
+  },
+    gasReporter: {
+        enabled: true,
+        coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+        L1Etherscan: process.env.ETHERSCAN_API_KEY,
+    },
     networks: {
         hardhat: {
             forking: {
-                url: "https://mainnet.infura.io/v3/7763ecedc8474ba6a5ea95274a9dd3f0",
+                url: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
                 blockNumber: 13400000,
-                enabled: true
+                enabled: false
             }
         }
     }

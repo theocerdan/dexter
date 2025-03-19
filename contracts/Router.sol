@@ -12,8 +12,8 @@ contract Router {
 
     mapping(address => mapping(address => address)) public getPair;
     address[] public allPairs;
-    address public uniswapV2Router;
-    address public owner;
+    address immutable public uniswapV2Router;
+    address immutable public owner;
 
     event NewPair(address tokenA, address tokenB, address pair);
 

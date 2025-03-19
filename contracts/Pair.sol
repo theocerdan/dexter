@@ -8,12 +8,13 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract Pair {
     using SafeERC20 for IERC20;
 
-    address public tokenA;
-    address public tokenB;
+    address immutable public tokenA;
+    address immutable public tokenB;
+
     uint256 public reserveA;
     uint256 public reserveB;
-    mapping(address => uint256) public shares;
     uint256 public totalShares;
+    mapping(address => uint256) public shares;
 
     event AddLiquidity(address sender, uint256 amountA, uint256 amountB);
     event RemoveLiquidity(address sender, uint256 shares);
@@ -31,12 +32,13 @@ contract Pair {
         IERC20(tokenB).safeTransferFrom(msg.sender, address(this), amountB);
 
         uint256 newShares;
-        if (totalShares == 0) {
+        uint256 totalShares_ = totalShares;
+        if (totalShares_ == 0) {
             newShares = Math.sqrt(amountA * amountB);
         } else {
             newShares =  Math.min(
-                (amountA * totalShares) / reserveA,
-                (amountB * totalShares) / reserveB
+                (amountA * totalShares_) / reserveA,
+                (amountB * totalShares_) / reserveB
             );
         }
 

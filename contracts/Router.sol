@@ -51,6 +51,7 @@ contract Router is IRouter {
 
     function withdrawFees() external {
         if (msg.sender != owner) revert Unauthorized(msg.sender, owner);
-        payable(owner).transfer(address(this).balance);
+        (bool sent, bytes memory data) = msg.sender.call{value: address(this).balance}("");
     }
+
 }

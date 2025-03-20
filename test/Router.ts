@@ -9,26 +9,29 @@ import {getSigners} from "@nomicfoundation/hardhat-ethers/internal/helpers";
 describe("Router contract", function () {
 
   async function createTokens(airdropUsers: Addressable[], airdropAmount: number[]) {
+      const feeData = await hre.ethers.provider.getFeeData();
 
-    const tokenA = await hre.ethers.deployContract("DumbERC20", ["TokenA", "TKA"]);
-    const tokenB = await hre.ethers.deployContract("DumbERC20", ["TokenB", "TKB"]);
+      const tokenA = await hre.ethers.deployContract("DumbERC20", ["TokenA", "TKA"], { gasPrice: feeData.gasPrice });
+      const tokenB = await hre.ethers.deployContract("DumbERC20", ["TokenB", "TKB"], { gasPrice: feeData.gasPrice });
 
-    for (const user of airdropUsers) {
-        const index = airdropUsers.indexOf(user);
-        let amount = airdropAmount[index];
-        if (amount == -1) {
-          amount = 1000;
+        for (const user of airdropUsers) {
+            const index = airdropUsers.indexOf(user);
+            let amount = airdropAmount[index];
+            if (amount == -1) {
+              amount = 1000;
+            }
+            await tokenA.mint(user, amount);
+            await tokenB.mint(user, amount);
         }
-        await tokenA.mint(user, amount);
-        await tokenB.mint(user, amount);
-    }
 
     return { tokenA, tokenB, addressTokenA: tokenA.getAddress(), addressTokenB: tokenB.getAddress() };
   }
 
   async function createRouter() {
 
-    const router = await hre.ethers.deployContract("Router", [UNISWAP_V2_ROUTER_ADDRESS]);
+    const feeData = await hre.ethers.provider.getFeeData();
+
+    const router = await hre.ethers.deployContract("Router", [UNISWAP_V2_ROUTER_ADDRESS], { gasPrice: feeData.gasPrice });
 
     return { router };
   }
@@ -200,7 +203,7 @@ describe("Router contract", function () {
         expect(bal_eth_before).to.be.equal(0);
         expect(bal_eth_after).to.be.equal(ethers.parseEther("1.0"));
 
-        await expect(router.connect(vbSigner).withdrawFees()).to.be.revertedWith("You are not the owner");
+        await expect(router.connect(vbSigner).withdrawFees()).to.be.revertedWithCustomError(router, "Unauthorized");
 
         const bal_eth_owner_before_withdraw = await hre.ethers.provider.getBalance(await toto.getAddress());
         await router.withdrawFees();

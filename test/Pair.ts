@@ -23,9 +23,10 @@ describe("Pair", function () {
     }
 
     async function createTokens(airdropUsers: Addressable[], airdropAmount: number[]) {
+        const feeData = await hre.ethers.provider.getFeeData();
 
-        const tokenA = await hre.ethers.deployContract("DumbERC20", ["TokenA", "TKA"]);
-        const tokenB = await hre.ethers.deployContract("DumbERC20", ["TokenB", "TKB"]);
+        const tokenA = await hre.ethers.deployContract("DumbERC20", ["TokenA", "TKA"], { gasPrice: feeData.gasPrice });
+        const tokenB = await hre.ethers.deployContract("DumbERC20", ["TokenB", "TKB"], { gasPrice: feeData.gasPrice });
 
         for (const user of airdropUsers) {
             const index = airdropUsers.indexOf(user);

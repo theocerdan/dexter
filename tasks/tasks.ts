@@ -35,10 +35,10 @@ task("router")
             const routerContract = await hre.ethers.getContractFactory("Router");
             const tokenContract = await hre.ethers.getContractFactory("DumbERC20");
 
-            const tokenA = await tokenContract.deploy("TokenA", "TKA", { maxFeePerGas: 110401668747 });
-            const tokenB = await tokenContract.deploy("TokenB", "TKB", { maxFeePerGas: 110401668747 });
-            const tokenC = await tokenContract.deploy("TokenC", "TKC", { maxFeePerGas: 110401668747 });
-            const router = await routerContract.deploy(taskArgs.uniswap, { maxFeePerGas: 110401668747 });
+            const tokenA = await tokenContract.deploy("TokenA", "TKA");
+            const tokenB = await tokenContract.deploy("TokenB", "TKB");
+            const tokenC = await tokenContract.deploy("TokenC", "TKC");
+            const router = await routerContract.deploy(taskArgs.uniswap);
 
             await tokenA.mint(address, 1000);
             await tokenB.mint(address, 1000);

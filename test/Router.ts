@@ -222,7 +222,6 @@ describe("Router contract", function () {
 
           const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
 
-          const weth = await hre.ethers.getContractAt("IERC20", WETH_ADDRESS);
           const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
 
           const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());

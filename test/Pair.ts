@@ -119,7 +119,7 @@ describe("Pair", function () {
 
             const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
             const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { pair, pairTokenA } = await createPair(router, tokenA, tokenB);
 
             await expect(pair.getQuote(pairTokenA.getAddress(), 200)).to.be.revertedWithCustomError(pair, "NotEnoughReserve");
         });

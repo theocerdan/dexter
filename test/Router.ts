@@ -6,6 +6,10 @@ import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import {UNISWAP_V2_ROUTER_ADDRESS} from "./Constants";
 import {getSigners} from "@nomicfoundation/hardhat-ethers/internal/helpers";
 
+const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+const VITALIK_ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+
 describe("Router contract", function () {
 
   async function createTokens(airdropUsers: Addressable[], airdropAmount: number[]) {
@@ -57,182 +61,176 @@ describe("Router contract", function () {
     return { pair, pairTokenA: pairTokenA, pairTokenB: pairTokenB };
   }
 
-  it("Deploy Router contract", async () => {
+  it("should deploy Router Contract", async () => {
     await createRouter();
   })
 
-  it("Create pair", async () => {
-    const { tokenA, tokenB } = await createTokens([], []);
-    const { router } = await createRouter();
+    describe("Pair", function () {
+        it("should create Pair", async () => {
+            const { tokenA, tokenB } = await createTokens([], []);
+            const { router } = await createRouter();
 
-    const { pair } = await createPair(router, tokenA, tokenB);
+            const { pair } = await createPair(router, tokenA, tokenB);
 
-    expect(await pair.tokenA() == await tokenA.getAddress() || await tokenB.getAddress());
-    expect(await pair.tokenB() == await tokenA.getAddress() || await tokenB.getAddress());
+            expect(await pair.tokenA() == await tokenA.getAddress() || await tokenB.getAddress());
+            expect(await pair.tokenB() == await tokenA.getAddress() || await tokenB.getAddress());
 
-    expect(await pair.reserveB()).to.be.equal(0);
-    expect(await pair.reserveA()).to.be.equal(0);
-    expect(await pair.totalShares()).to.be.equal(0);
-  });
+            expect(await pair.reserveB()).to.be.equal(0);
+            expect(await pair.reserveA()).to.be.equal(0);
+            expect(await pair.totalShares()).to.be.equal(0);
+        });
 
-  it("Create pair with zero address", async () => {
-    const { tokenA } = await createTokens([], []);
-    const { router } = await createRouter();
+        it("should revert custom error if token address is zero", async () => {
+            const { tokenA } = await createTokens([], []);
+            const { router } = await createRouter();
 
-    await expect(router.createPair(tokenA.getAddress(), ZeroAddress)).to.be.revertedWithCustomError(router, "ZeroAddress")
-  });
+            await expect(router.createPair(tokenA.getAddress(), ZeroAddress)).to.be.revertedWithCustomError(router, "ZeroAddress")
+        });
 
-  it("Create pair with identical addresses", async () => {
-    const { tokenA } = await createTokens([], []);
-    const { router } = await createRouter();
+        it("should revert custom error if token address are identical", async () => {
+            const { tokenA } = await createTokens([], []);
+            const { router } = await createRouter();
 
-    await expect(router.createPair(tokenA.getAddress(), tokenA.getAddress())).to.be.revertedWithCustomError(router, "IdenticalAddress");
-  });
+            await expect(router.createPair(tokenA.getAddress(), tokenA.getAddress())).to.be.revertedWithCustomError(router, "IdenticalAddress");
+        });
 
-  it("Create already existing pair ", async () => {
-    const { tokenA, tokenB } = await createTokens([], []);
-    const { router } = await createRouter();
+        it("should revert custom error if pair already exist", async () => {
+            const { tokenA, tokenB } = await createTokens([], []);
+            const { router } = await createRouter();
 
-    await router.createPair(tokenA.getAddress(), tokenB.getAddress());
-    await expect(router.createPair(tokenA.getAddress(), tokenB.getAddress())).to.be.revertedWithCustomError(router, "PairAlreadyExist");
-  });
+            await router.createPair(tokenA.getAddress(), tokenB.getAddress());
+            await expect(router.createPair(tokenA.getAddress(), tokenB.getAddress())).to.be.revertedWithCustomError(router, "PairAlreadyExist");
+        });
 
-  it("Pair exist in the route table (getPair)", async () => {
-    const { tokenA, tokenB } = await createTokens([], []);
-    const { router } = await createRouter();
-    const { pair } = await createPair(router, tokenA, tokenB);
+        it("should return pair address by using getPair() function", async () => {
+            const { tokenA, tokenB } = await createTokens([], []);
+            const { router } = await createRouter();
+            const { pair } = await createPair(router, tokenA, tokenB);
 
-    const pairAddress = await router.getPair(tokenA.getAddress(), tokenB.getAddress());
-    const pairAddressReverse = await router.getPair(tokenB.getAddress(), tokenA.getAddress());
+            const pairAddress = await router.getPair(tokenA.getAddress(), tokenB.getAddress());
+            const pairAddressReverse = await router.getPair(tokenB.getAddress(), tokenA.getAddress());
 
-    expect(pairAddress).to.be.equal(await pair.getAddress());
-    expect(pairAddressReverse).to.be.equal(await pair.getAddress());
-  });
+            expect(pairAddress).to.be.equal(await pair.getAddress());
+            expect(pairAddressReverse).to.be.equal(await pair.getAddress());
+        });
 
-  it("Router should emit an event when new pair is created", async () => {
-    const { tokenA, tokenB } = await createTokens([], []);
-    const { router } = await createRouter();
+        it("should emit event when new pair is created", async () => {
+            const { tokenA, tokenB } = await createTokens([], []);
+            const { router } = await createRouter();
 
-    await expect(router.createPair(tokenA.getAddress(), tokenB.getAddress())).to.emit(router, "NewPair").withArgs(tokenA.getAddress(), tokenB.getAddress(), anyValue);
-  });
+            await expect(router.createPair(tokenA.getAddress(), tokenB.getAddress())).to.emit(router, "NewPair").withArgs(tokenA.getAddress(), tokenB.getAddress(), anyValue);
+        });
 
-  it("Try to get non existing pair", async () => {
-    const { tokenA, tokenB } = await createTokens([], []);
-    const { router } = await createRouter();
+        it("should return zero address if pair isn't exist", async () => {
+            const { tokenA, tokenB } = await createTokens([], []);
+            const { router } = await createRouter();
 
-    expect(await router.getPair(tokenA.getAddress(), tokenB.getAddress())).to.be.equal(ZeroAddress);
-  });
+            expect(await router.getPair(tokenA.getAddress(), tokenB.getAddress())).to.be.equal(ZeroAddress);
+        });
 
-  it('should forward a swap through uniswap v2', async () => {
-      const { router } = await createRouter();
-
-      const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
-      const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
-
-      const vbAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
-
-      const vbSigner = await ethers.getImpersonatedSigner(vbAddress);
-
-      const weth = await hre.ethers.getContractAt("IERC20", WETH_ADDRESS);
-      const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
-
-      const bal_weth_before = await weth.balanceOf(await vbSigner.getAddress());
-      const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
-      const bal_eth_before = await hre.ethers.provider.getBalance(await vbSigner.getAddress());
-
-      await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
-      await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
-
-      const bal_weth_after = await weth.balanceOf(await vbSigner.getAddress());
-      const bal_usdt_after = await usdt.balanceOf(await vbSigner.getAddress());
-      const bal_eth_after = await hre.ethers.provider.getBalance(await vbSigner.getAddress());
-
-      expect(bal_weth_after).to.be.gt(bal_weth_before);
-      expect(bal_usdt_after).to.be.lt(bal_usdt_before);
-      expect(bal_eth_after).to.be.lt(bal_eth_before);
-  });
-
-    it('should take a fees for forwarding', async () => {
-        const { router } = await createRouter();
-
-        const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
-        const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
-
-        const vbAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
-
-        const vbSigner = await ethers.getImpersonatedSigner(vbAddress);
-
-        const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
-
-        const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
-
-        await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
-
-        const bal_eth_before = await hre.ethers.provider.getBalance(await router.getAddress());
-        await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
-
-        const bal_eth_after = await hre.ethers.provider.getBalance(await router.getAddress());
-
-        expect(bal_eth_before).to.be.equal(0);
-        expect(bal_eth_after).to.be.equal(ethers.parseEther("1.0"));
     });
 
-    it('only can owner withdraw collected fees', async () => {
-        const { router } = await createRouter();
-        const [ toto ] = await getSigners(hre);
+  describe("Withdraw fees", function () {
+      it('should not be possible to withdraw fees if you are not the owner', async () => {
+          const { router } = await createRouter();
 
-        const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
-        const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+          const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
 
-        const vbAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+          const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
 
-        const vbSigner = await ethers.getImpersonatedSigner(vbAddress);
+          await usdt.connect(vbSigner).approve(await router.getAddress(), 1000);
 
-        const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
+          await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
 
-        const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
+          await expect(router.connect(vbSigner).withdrawFees()).to.be.revertedWithCustomError(router, "Unauthorized");
+      });
 
-        await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
+      it('should be possible to withdraw fees if you are the owner', async () => {
+          const { router } = await createRouter();
+          const [ toto ] = await getSigners(hre);
 
-        const bal_eth_before = await hre.ethers.provider.getBalance(await router.getAddress());
+          const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
 
-        await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
+          const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
 
-        const bal_eth_after = await hre.ethers.provider.getBalance(await router.getAddress());
+          await usdt.connect(vbSigner).approve(await router.getAddress(), 1000);
 
-        expect(bal_eth_before).to.be.equal(0);
-        expect(bal_eth_after).to.be.equal(ethers.parseEther("1.0"));
+          await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
 
-        await expect(router.connect(vbSigner).withdrawFees()).to.be.revertedWithCustomError(router, "Unauthorized");
+          const bal_eth_owner_before_withdraw = await hre.ethers.provider.getBalance(await toto.getAddress());
 
-        const bal_eth_owner_before_withdraw = await hre.ethers.provider.getBalance(await toto.getAddress());
-        await router.withdrawFees();
+          await router.withdrawFees();
 
-        const bal_eth_after_withdraw = await hre.ethers.provider.getBalance(await router.getAddress());
+          const bal_eth_after_withdraw = await hre.ethers.provider.getBalance(await router.getAddress());
 
-        const bal_eth_owner_after_withdraw = await hre.ethers.provider.getBalance(await toto.getAddress());
-        expect(bal_eth_after_withdraw).to.be.equal(0);
-        expect(bal_eth_owner_after_withdraw).to.be.greaterThan(bal_eth_owner_before_withdraw);
-    });
+          const bal_eth_owner_after_withdraw = await hre.ethers.provider.getBalance(await toto.getAddress());
+
+          expect(bal_eth_after_withdraw).to.be.equal(0);
+          expect(bal_eth_owner_after_withdraw).to.be.greaterThan(bal_eth_owner_before_withdraw);
+      });
 
 
-    it('should forward a swap through uniswap v2 but user didn\t have enought ustd', async () => {
-        const { router } = await createRouter();
+  });
 
-        const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
-        const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+  describe("Swap forwarding", function () {
+      it('should forward a swap through uniswap v2 if the pair doesn\' t exist', async () => {
+          const { router } = await createRouter();
 
-        const vbAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+          const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
 
-        const vbSigner = await ethers.getImpersonatedSigner(vbAddress);
+          const weth = await hre.ethers.getContractAt("IERC20", WETH_ADDRESS);
+          const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
 
-        const weth = await hre.ethers.getContractAt("IERC20", WETH_ADDRESS);
-        const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
+          const bal_weth_before = await weth.balanceOf(await vbSigner.getAddress());
+          const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
+          const bal_eth_before = await hre.ethers.provider.getBalance(await vbSigner.getAddress());
 
-        const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
+          await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
+          await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
 
-        await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
-        await expect(router.connect(vbSigner).swapForwarding(bal_usdt_before + 100n, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")})).to.be.revertedWithoutReason();
-    });
+          const bal_weth_after = await weth.balanceOf(await vbSigner.getAddress());
+          const bal_usdt_after = await usdt.balanceOf(await vbSigner.getAddress());
+          const bal_eth_after = await hre.ethers.provider.getBalance(await vbSigner.getAddress());
+
+          expect(bal_weth_after).to.be.gt(bal_weth_before);
+          expect(bal_usdt_after).to.be.lt(bal_usdt_before);
+          expect(bal_eth_after).to.be.lt(bal_eth_before);
+      });
+
+      it('should collect a 1 ether fee', async () => {
+          const { router } = await createRouter();
+
+          const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
+
+          const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
+
+          const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
+
+          await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
+
+          const bal_eth_before = await hre.ethers.provider.getBalance(await router.getAddress());
+          await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
+
+          const bal_eth_after = await hre.ethers.provider.getBalance(await router.getAddress());
+
+          expect(bal_eth_before).to.be.equal(0);
+          expect(bal_eth_after).to.be.equal(ethers.parseEther("1.0"));
+      });
+
+      it('should not forward a swap through uniswap v2 if user doesn\' t have enough USDT', async () => {
+          const { router } = await createRouter();
+
+          const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
+
+          const weth = await hre.ethers.getContractAt("IERC20", WETH_ADDRESS);
+          const usdt = await hre.ethers.getContractAt("IERC20", USDT_ADDRESS);
+
+          const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
+
+          await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
+          await expect(router.connect(vbSigner).swapForwarding(bal_usdt_before + 100n, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")})).to.be.revertedWithoutReason();
+      });
+
+  });
 
 });

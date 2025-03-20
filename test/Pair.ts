@@ -85,330 +85,341 @@ describe("Pair", function () {
         }
     }
 
-    it("Get quote", async () => {
-        const [ toto, tata ] = await getSigners();
+    describe("Get Quote", function () {
+        it("should return a quote equals to the simulate quote", async () => {
+            const [ toto, tata ] = await getSigners();
 
-        const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 10000, 10000);
-
-        const { amountOut } = await simulateQuote(200n, await pair.reserveA(), await pair.reserveB());
-
-        expect(await pair.getQuote(pairTokenA.getAddress(), 200)).to.be.equal(amountOut);
-    });
-
-    it("Get quote for non equitable pools", async () => {
-        const [ toto, tata ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 10000, 4000);
-
-        const { amountOut } = await simulateQuote(555n, await pair.reserveB(), await pair.reserveA());
-
-        expect(await pair.getQuote(pairTokenB.getAddress(), 555)).to.be.equal(amountOut);
-    });
-
-    it("Get quote with empty reserves", async () => {
-        const [ toto, tata ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await expect(pair.getQuote(pairTokenA.getAddress(), 200)).to.be.revertedWithCustomError(pair, "NotEnoughReserve");
-    });
-
-
-    it("Get quote for a 0", async () => {
-        const [ toto, tata ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA } = await createPair(router, tokenA, tokenB);
-
-        await expect(pair.getQuote(pairTokenA.getAddress(), 0)).to.be.revertedWithCustomError(pair, "InvalidInputAmount");
-    });
-
-    it("Get quote without the good token", async () => {
-        const [ toto, tata ] = await getSigners();
-
-        const { tokenA, tokenB} = await createTokens([toto, tata], [10000, 10000]);
-        const { tokenA: tokenC } = await createTokens([], []);
-        const { router } = await createRouter();
-        const { pair } = await createPair(router, tokenA, tokenB);
-
-        await expect(pair.getQuote(tokenC.getAddress(), 10)).to.be.revertedWithCustomError(pair, "InvalidInputToken");
-    });
-
-    it("Swap a non existing pool", async () => {
-        const [ toto ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto], [10000, 10000]);
-        const { tokenA: tokenC } = await createTokens([toto], [10000]);
-
-        const { router } = await createRouter();
-
-        const { pair } = await createPair(router, tokenA, tokenB);
-
-        await expect(pair.swap(await tokenC.getAddress(), 100)).to.be.revertedWithCustomError(pair, "InvalidInputToken");
-    });
-
-    it("Can swap", async () => {
-        const [ toto ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto], [10000]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
-
-        await pair.swap(await pairTokenA.getAddress(), 100);
-
-        const { amountOut: simulateAmountOut } = await simulateQuote(100n, 500n, 500n);
-        expect(await pair.reserveB()).to.be.equal(500n - simulateAmountOut);
-        expect(await pair.reserveA()).to.be.equal(600n);
-
-
-        const lastEvent = await pair.queryFilter(pair.filters.Swap());
-        expect(lastEvent.length).to.be.equal(1);
-        expect(lastEvent[0].args.amountIn).to.be.equal(100n);
-        expect(lastEvent[0].args.amountOut).to.be.equal(simulateAmountOut);
-        expect(lastEvent[0].args.sender).to.be.equal(await toto.getAddress());
-        expect(lastEvent[0].args.tokenIn).to.be.equal(await pairTokenA.getAddress());
-        expect(lastEvent[0].args.tokenOut).to.be.equal(await pairTokenB.getAddress());
-    });
-
-    it("Cannot swap with amountIn = zero", async () => {
-        const [ toto ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto], [10000]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
-
-        await expect(pair.swap(await pairTokenA.getAddress(), 0)).to.be.revertedWithCustomError(pair, "InvalidInputAmount");
-    });
-
-    it("Cannot swap with bad token address", async () => {
-        const [ toto ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto], [10000]);
-        const { tokenA: tokenC } = await createTokens([], []);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
-
-        await expect(pair.swap(await tokenC.getAddress(), 100)).to.be.revertedWithCustomError(pair, "InvalidInputToken");
-    });
-
-    it("Cannot swap because not user don't have enought token", async () => {
-        const [ toto ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto], [600]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
-
-        await expect(pair.swap(await tokenA.getAddress(), 150)).to.be.revertedWithCustomError(tokenA, "ERC20InsufficientBalance");
-    });
-
-    it("Cannot swap because user hadn't accept allowance", async () => {
-        const [ toto, tata ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto, tata], [600, 1000]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
-
-        await expect(pair.connect(tata).swap(await tokenA.getAddress(), 150)).to.be.revertedWithCustomError(tokenA, "ERC20InsufficientAllowance");
-    });
-
-
-    it("Cannot swap because amountOut is zero", async () => {
-        const [ toto ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto], [10000]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
-
-        await expect(pair.swap(await pairTokenA.getAddress(), 1)).to.be.revertedWithCustomError(pair, "InvalidOutputAmount");
-    });
-
-    it("Cannot deposit liquidity because user don't have enought token", async () => {
-        const [ toto ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto], [100]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 100, 200)).to.be.revertedWithCustomError(pairTokenA, "ERC20InsufficientBalance");
-        await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 200, 100)).to.be.revertedWithCustomError(pairTokenA, "ERC20InsufficientBalance");
-    });
-
-    it("Cannot deposit 0 token", async () => {
-        const [ toto ] = await getSigners();
-
-        const { tokenA, tokenB } = await createTokens([toto], [100]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 0, 0)).to.be.revertedWithCustomError(pair, "NotEnoughLiquidityProvided");
-    });
-
-    [[100, 100, 300, 300]].forEach(([amountA, amountB, amountA2, amountB2]) => {
-        it("Can deposit token", async () => {
-            const [ toto ] = await getSigners();
-            const balance = 100_000_000;
-
-            const { tokenA, tokenB } = await createTokens([toto], [balance]);
+            const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
             const { router } = await createRouter();
             const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
 
-            await depositLiquidity(pair, pairTokenA, pairTokenB, amountA, amountB);
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 10000, 10000);
 
-            expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - amountA);
-            expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - amountB);
+            const { amountOut } = simulateQuote(200n, await pair.reserveA(), await pair.reserveB());
 
-            expect(await pair.reserveA()).to.be.equal(amountA);
-            expect(await pair.reserveB()).to.be.equal(amountB);
+            expect(await pair.getQuote(pairTokenA.getAddress(), 200)).to.be.equal(amountOut);
+        });
 
-            const firstTimeShares = Math.sqrt(amountA * amountB);
+        it("should return a quote equals to the simulate quote if the pool is non equitable", async () => {
+            const [ toto, tata ] = await getSigners();
 
-            expect(await pair.totalShares()).to.be.equal(firstTimeShares);
-            expect(await pair.shares(await toto.getAddress())).to.be.equal(firstTimeShares);
+            const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
 
-            await depositLiquidity(pair, pairTokenA, pairTokenB, amountA2, amountB2);
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 10000, 4000);
 
-            const secondTimeShares =  Math.min(
-                (amountA2 * Number(await pair.totalShares())) / Number(await pair.reserveA()),
-                (amountB2 * Number(await pair.totalShares())) / Number(await pair.reserveB())
-            ) + firstTimeShares;
+            const { amountOut } = simulateQuote(555n, await pair.reserveB(), await pair.reserveA());
 
-            expect(await pair.totalShares()).to.be.equal(secondTimeShares);
-            expect(await pair.reserveA()).to.be.equal(amountA + amountA2);
-            expect(await pair.reserveB()).to.be.equal(amountB + amountB2);
-            expect(await pair.shares(await toto.getAddress())).to.be.equal(secondTimeShares);
-            expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - (amountA + amountA2));
-            expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - (amountB + amountB2));
+            expect(await pair.getQuote(pairTokenB.getAddress(), 555)).to.be.equal(amountOut);
+        });
 
-            const lastEvent = await pair.queryFilter(pair.filters.AddLiquidity());
+        it("should revert custom error when reserves are empty", async () => {
+            const [ toto, tata ] = await getSigners();
 
-            expect(lastEvent.length).to.be.equal(2);
-            expect(lastEvent[0].args.adder).to.be.equal(await toto.getAddress());
-            expect(lastEvent[0].args.amountA).to.be.equal(amountA);
-            expect(lastEvent[0].args.amountB).to.be.equal(amountB);
+            const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
 
-            expect(lastEvent[1].args.adder).to.be.equal(await toto.getAddress());
-            expect(lastEvent[1].args.amountA).to.be.equal(amountA2);
-            expect(lastEvent[1].args.amountB).to.be.equal(amountB2);
+            await expect(pair.getQuote(pairTokenA.getAddress(), 200)).to.be.revertedWithCustomError(pair, "NotEnoughReserve");
+        });
+
+
+        it("should revert custom error when input amount is zero", async () => {
+            const [ toto, tata ] = await getSigners();
+
+            const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA } = await createPair(router, tokenA, tokenB);
+
+            await expect(pair.getQuote(pairTokenA.getAddress(), 0)).to.be.revertedWithCustomError(pair, "InvalidInputAmount");
+        });
+
+        it("should revert custom error when input token is not a pair token", async () => {
+            const [ toto, tata ] = await getSigners();
+
+            const { tokenA, tokenB} = await createTokens([toto, tata], [10000, 10000]);
+            const { tokenA: tokenC } = await createTokens([], []);
+            const { router } = await createRouter();
+            const { pair } = await createPair(router, tokenA, tokenB);
+
+            await expect(pair.getQuote(tokenC.getAddress(), 10)).to.be.revertedWithCustomError(pair, "InvalidInputToken");
+        });
+    });
+
+    describe("Swap", function () {
+        it("should revert custom error when input token is not a pair token", async () => {
+            const [ toto ] = await getSigners();
+
+            const { tokenA, tokenB } = await createTokens([toto], [10000, 10000]);
+            const { tokenA: tokenC } = await createTokens([toto], [10000]);
+
+            const { router } = await createRouter();
+
+            const { pair } = await createPair(router, tokenA, tokenB);
+
+            await expect(pair.swap(await tokenC.getAddress(), 100)).to.be.revertedWithCustomError(pair, "InvalidInputToken");
+        });
+
+        it("should swap token", async () => {
+            const [ toto ] = await getSigners();
+
+            const { tokenA, tokenB } = await createTokens([toto], [10000]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
+
+            await pair.swap(await pairTokenA.getAddress(), 100);
+
+            const { amountOut: simulateAmountOut } = simulateQuote(100n, 500n, 500n);
+            expect(await pair.reserveB()).to.be.equal(500n - simulateAmountOut);
+            expect(await pair.reserveA()).to.be.equal(600n);
+
+
+            const lastEvent = await pair.queryFilter(pair.filters.Swap());
+            expect(lastEvent.length).to.be.equal(1);
+            expect(lastEvent[0].args.amountIn).to.be.equal(100n);
+            expect(lastEvent[0].args.amountOut).to.be.equal(simulateAmountOut);
+            expect(lastEvent[0].args.sender).to.be.equal(await toto.getAddress());
+            expect(lastEvent[0].args.tokenIn).to.be.equal(await pairTokenA.getAddress());
+            expect(lastEvent[0].args.tokenOut).to.be.equal(await pairTokenB.getAddress());
+        });
+
+        it("should revert with a custom error when amountIs equals to zero", async () => {
+            const [ toto ] = await getSigners();
+
+            const { tokenA, tokenB } = await createTokens([toto], [10000]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
+
+            await expect(pair.swap(await pairTokenA.getAddress(), 0)).to.be.revertedWithCustomError(pair, "InvalidInputAmount");
+        });
+
+
+        it("should revert with custom error when user don't have enough token", async () => {
+            const [ toto ] = await getSigners();
+
+            const { tokenA, tokenB } = await createTokens([toto], [600]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
+
+            await expect(pair.swap(await tokenA.getAddress(), 150)).to.be.revertedWithCustomError(tokenA, "ERC20InsufficientBalance");
+        });
+
+        it("should revert with custom error when user don't have enough allowed token", async () => {
+            const [ toto, tata ] = await getSigners();
+
+            const { tokenA, tokenB } = await createTokens([toto, tata], [600, 1000]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
+
+            await expect(pair.connect(tata).swap(await tokenA.getAddress(), 150)).to.be.revertedWithCustomError(tokenA, "ERC20InsufficientAllowance");
+        });
+
+
+        it("should revert with custom error if calculated amount out is zero", async () => {
+            const [ toto ] = await getSigners();
+
+            const { tokenA, tokenB } = await createTokens([toto], [10000]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
+
+            await expect(pair.swap(await pairTokenA.getAddress(), 1)).to.be.revertedWithCustomError(pair, "InvalidOutputAmount");
+        });
+    });
+
+    describe("Deposit Liquidity", function () {
+
+        it("should revert with custom error if user don't have enough token", async () => {
+            const [ toto ] = await getSigners();
+
+            const { tokenA, tokenB } = await createTokens([toto], [100]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+            await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 100, 200)).to.be.revertedWithCustomError(pairTokenA, "ERC20InsufficientBalance");
+            await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 200, 100)).to.be.revertedWithCustomError(pairTokenA, "ERC20InsufficientBalance");
+        });
+
+        it("should revert with custom error if user try to deposit 0 token", async () => {
+            const [ toto ] = await getSigners();
+
+            const { tokenA, tokenB } = await createTokens([toto], [100]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+            await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 0, 0)).to.be.revertedWithCustomError(pair, "NotEnoughLiquidityProvided");
+        });
+
+        it("should emit event when user deposit liquidity", async () => {
+                const [ toto ] = await getSigners();
+                const balance = 100_000_000;
+
+                const { tokenA, tokenB } = await createTokens([toto], [balance]);
+                const { router } = await createRouter();
+                const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+                await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100);
+
+                const lastEvent = await pair.queryFilter(pair.filters.AddLiquidity());
+
+                expect(lastEvent.length).to.be.equal(1);
+                expect(lastEvent[0].args.adder).to.be.equal(await toto.getAddress());
+                expect(lastEvent[0].args.amountA).to.be.equal(100);
+                expect(lastEvent[0].args.amountB).to.be.equal(100);
+        });
+
+
+        [[100, 100, 300, 300]].forEach(([amountA, amountB, amountA2, amountB2]) => { // a refaire
+            it("should update reserves and shares for the first time if user deposit liquidity", async () => {
+                const [ toto ] = await getSigners();
+                const balance = 100_000_000;
+
+                const { tokenA, tokenB } = await createTokens([toto], [balance]);
+                const { router } = await createRouter();
+                const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+                await depositLiquidity(pair, pairTokenA, pairTokenB, amountA, amountB);
+
+                expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - amountA);
+                expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - amountB);
+
+                expect(await pair.reserveA()).to.be.equal(amountA);
+                expect(await pair.reserveB()).to.be.equal(amountB);
+
+                const firstTimeShares = Math.sqrt(amountA * amountB);
+
+                expect(await pair.totalShares()).to.be.equal(firstTimeShares);
+                expect(await pair.shares(await toto.getAddress())).to.be.equal(firstTimeShares);
+
+                await depositLiquidity(pair, pairTokenA, pairTokenB, amountA2, amountB2);
+
+                const secondTimeShares =  Math.min(
+                    (amountA2 * Number(await pair.totalShares())) / Number(await pair.reserveA()),
+                    (amountB2 * Number(await pair.totalShares())) / Number(await pair.reserveB())
+                ) + firstTimeShares;
+
+                expect(await pair.totalShares()).to.be.equal(secondTimeShares);
+                expect(await pair.reserveA()).to.be.equal(amountA + amountA2);
+                expect(await pair.reserveB()).to.be.equal(amountB + amountB2);
+                expect(await pair.shares(await toto.getAddress())).to.be.equal(secondTimeShares);
+                expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - (amountA + amountA2));
+                expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - (amountB + amountB2));
+
+                const lastEvent = await pair.queryFilter(pair.filters.AddLiquidity());
+
+                expect(lastEvent.length).to.be.equal(2);
+                expect(lastEvent[0].args.adder).to.be.equal(await toto.getAddress());
+                expect(lastEvent[0].args.amountA).to.be.equal(amountA);
+                expect(lastEvent[0].args.amountB).to.be.equal(amountB);
+
+                expect(lastEvent[1].args.adder).to.be.equal(await toto.getAddress());
+                expect(lastEvent[1].args.amountA).to.be.equal(amountA2);
+                expect(lastEvent[1].args.amountB).to.be.equal(amountB2);
+            });
+
 
         });
 
     });
 
-    it("Can withdraw liquidity", async () => {
-        const [ toto, tata ] = await getSigners();
-        const balance = 100_000_000;
+    describe("Withdraw Liquidity", function () {
+        it("should withdraw liquidity and transfer token to remover", async () => {
+            const [toto, tata] = await getSigners();
+            const balance = 100_000_000;
 
-        const { tokenA, tokenB } = await createTokens([toto, tata], [balance, balance]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const {tokenA, tokenB} = await createTokens([toto, tata], [balance, balance]);
+            const {router} = await createRouter();
+            const {pair, pairTokenA, pairTokenB} = await createPair(router, tokenA, tokenB);
 
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100, toto);
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 200, 200, tata);
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100, toto);
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 200, 200, tata);
 
-        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
-        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+            const sharesToto = await pair.shares(await toto.getAddress());
+            const sharesTata = await pair.shares(await tata.getAddress());
 
-        expect(await tokenA.balanceOf(await tata.getAddress())).to.be.equal(balance - 200);
-        expect(await tokenB.balanceOf(await tata.getAddress())).to.be.equal(balance - 200);
+            await pair.connect(tata).removeLiquidity(sharesTata);
 
-        expect(await pair.reserveA()).to.be.equal(300);
-        expect(await pair.reserveB()).to.be.equal(300);
+            expect(await pair.shares(await toto.getAddress())).to.be.equal(sharesToto);
 
-        const sharesToto = await pair.shares(await toto.getAddress());
-        const sharesTata = await pair.shares(await tata.getAddress());
+            expect(await tokenA.balanceOf(await tata.getAddress())).to.be.equal(balance);
+            expect(await tokenB.balanceOf(await tata.getAddress())).to.be.equal(balance);
 
-        await pair.connect(tata).removeLiquidity(sharesTata);
+            expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+            expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+        });
 
-        expect(await pair.shares(await toto.getAddress())).to.be.equal(sharesToto);
+        it("should emit event when user remove liquidity", async () => {
+            const [toto, tata] = await getSigners();
+            const balance = 100_000_000;
 
-        expect(await tokenA.balanceOf(await tata.getAddress())).to.be.equal(balance);
-        expect(await tokenB.balanceOf(await tata.getAddress())).to.be.equal(balance);
+            const {tokenA, tokenB} = await createTokens([toto, tata], [balance, balance]);
+            const {router} = await createRouter();
+            const {pair, pairTokenA, pairTokenB} = await createPair(router, tokenA, tokenB);
 
-        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
-        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100, toto);
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 200, 200, tata);
 
-        const lastEvent = await pair.queryFilter(pair.filters.RemoveLiquidity());
-        expect(lastEvent.length).to.be.equal(1);
-        expect(lastEvent[0].args.remover).to.be.equal(await tata.getAddress());
-        expect(lastEvent[0].args.shares).to.be.equal(sharesTata);
-        expect(lastEvent[0].args.amountA).to.be.equal(200);
-        expect(lastEvent[0].args.amountB).to.be.equal(200);
+            const sharesTata = await pair.shares(await tata.getAddress());
+
+            await pair.connect(tata).removeLiquidity(sharesTata);
+
+            const lastEvent = await pair.queryFilter(pair.filters.RemoveLiquidity());
+            expect(lastEvent.length).to.be.equal(1);
+            expect(lastEvent[0].args.remover).to.be.equal(await tata.getAddress());
+            expect(lastEvent[0].args.shares).to.be.equal(sharesTata);
+            expect(lastEvent[0].args.amountA).to.be.equal(200);
+            expect(lastEvent[0].args.amountB).to.be.equal(200);
+        });
+
+        it("should not be possible to more shares than you have", async () => {
+            const [toto] = await getSigners();
+            const balance = 100_000_000;
+
+            const {tokenA, tokenB} = await createTokens([toto], [balance]);
+            const {router} = await createRouter();
+            const {pair, pairTokenA, pairTokenB} = await createPair(router, tokenA, tokenB);
+
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100);
+
+            const sharesToto = await pair.shares(await toto.getAddress());
+
+            await expect(pair.removeLiquidity(sharesToto + 100n)).to.be.revertedWithCustomError(pair, "NotEnoughShares");
+
+            expect(await pair.shares(await toto.getAddress())).to.be.equal(sharesToto);
+
+            expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+            expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
+        });
+
+        it("should be possible to withdraw partially your shares", async () => {
+            const [toto] = await getSigners();
+            const balance = 100_000_000;
+
+            const {tokenA, tokenB} = await createTokens([toto], [balance]);
+            const {router} = await createRouter();
+            const {pair, pairTokenA, pairTokenB} = await createPair(router, tokenA, tokenB);
+
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100);
+
+            const sharesToto = await pair.shares(await toto.getAddress());
+
+            await pair.removeLiquidity(sharesToto / 2n);
+
+            expect(await pair.shares(await toto.getAddress())).to.be.equal(sharesToto / 2n);
+
+            expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 50);
+            expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 50);
+        });
+
     });
-
-    it("Cannot withdraw more token than you have", async () => {
-        const [ toto ] = await getSigners();
-        const balance = 100_000_000;
-
-        const { tokenA, tokenB } = await createTokens([toto], [balance]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100);
-
-        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
-        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
-
-        expect(await pair.reserveA()).to.be.equal(100);
-        expect(await pair.reserveB()).to.be.equal(100);
-
-        const sharesToto = await pair.shares(await toto.getAddress());
-
-        await expect(pair.removeLiquidity(sharesToto + 100n)).to.be.revertedWithCustomError(pair, "NotEnoughShares");
-
-        expect(await pair.shares(await toto.getAddress())).to.be.equal(sharesToto);
-
-        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
-        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
-    });
-
-    it("Can withdraw partial shares", async () => {
-        const [ toto ] = await getSigners();
-        const balance = 100_000_000;
-
-        const { tokenA, tokenB } = await createTokens([toto], [balance]);
-        const { router } = await createRouter();
-        const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-        await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100);
-
-        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
-        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 100);
-
-        expect(await pair.reserveA()).to.be.equal(100);
-        expect(await pair.reserveB()).to.be.equal(100);
-
-        const sharesToto = await pair.shares(await toto.getAddress());
-
-        await pair.removeLiquidity(sharesToto / 2n);
-
-        expect(await pair.shares(await toto.getAddress())).to.be.equal(sharesToto / 2n);
-
-        expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - 50);
-        expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - 50);
-    });
-
-
 });

@@ -305,11 +305,11 @@ describe("Pair", function () {
             const lastEvent = await pair.queryFilter(pair.filters.AddLiquidity());
 
             expect(lastEvent.length).to.be.equal(2);
-            expect(lastEvent[0].args.sender).to.be.equal(await toto.getAddress());
+            expect(lastEvent[0].args.adder).to.be.equal(await toto.getAddress());
             expect(lastEvent[0].args.amountA).to.be.equal(amountA);
             expect(lastEvent[0].args.amountB).to.be.equal(amountB);
 
-            expect(lastEvent[1].args.sender).to.be.equal(await toto.getAddress());
+            expect(lastEvent[1].args.adder).to.be.equal(await toto.getAddress());
             expect(lastEvent[1].args.amountA).to.be.equal(amountA2);
             expect(lastEvent[1].args.amountB).to.be.equal(amountB2);
 
@@ -352,8 +352,10 @@ describe("Pair", function () {
 
         const lastEvent = await pair.queryFilter(pair.filters.RemoveLiquidity());
         expect(lastEvent.length).to.be.equal(1);
-        expect(lastEvent[0].args.sender).to.be.equal(await tata.getAddress());
+        expect(lastEvent[0].args.remover).to.be.equal(await tata.getAddress());
         expect(lastEvent[0].args.shares).to.be.equal(sharesTata);
+        expect(lastEvent[0].args.amountA).to.be.equal(200);
+        expect(lastEvent[0].args.amountB).to.be.equal(200);
     });
 
     it("Cannot withdraw more token than you have", async () => {

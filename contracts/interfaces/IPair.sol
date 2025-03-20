@@ -11,8 +11,8 @@ interface IPair {
     function totalShares() external view returns (uint256);
     function shares(address key) external view returns (uint256); //je me demande si ça fonctionne comme ca pour les mappings
 
-    event AddLiquidity(address sender, uint256 amountA, uint256 amountB);
-    event RemoveLiquidity(address sender, uint256 shares);
+    event AddLiquidity(address adder, uint256 amountA, uint256 amountB, uint256 mintedShares);
+    event RemoveLiquidity(address remover, uint256 shares, uint256 amountA, uint256 amountB);
     event Swap(address sender, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
 
     error IdenticalAddress();

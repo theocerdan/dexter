@@ -47,7 +47,7 @@ contract Pair is IPair {
         totalShares += newShares;
         shares[msg.sender] += newShares;
 
-        emit AddLiquidity(msg.sender, amountA, amountB);
+        emit AddLiquidity(msg.sender, amountA, amountB, newShares);
     }
 
     function removeLiquidity(uint256 liquidity) external {
@@ -64,7 +64,7 @@ contract Pair is IPair {
         IERC20(tokenA).safeTransfer(msg.sender, amountA);
         IERC20(tokenB).safeTransfer(msg.sender, amountB);
 
-        emit RemoveLiquidity(msg.sender, liquidity);
+        emit RemoveLiquidity(msg.sender, liquidity, amountA, amountB);
     }
 
     function swap(address tokenIn, uint256 amountIn) external {

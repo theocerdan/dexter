@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.28;
 
-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IPair} from "./interfaces/IPair.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract Pair {
+contract Pair is IPair {
 
     using SafeERC20 for IERC20;
 
@@ -17,25 +18,9 @@ contract Pair {
     uint256 public totalShares;
     mapping(address => uint256) public shares;
 
-    event AddLiquidity(address sender, uint256 amountA, uint256 amountB);
-    event RemoveLiquidity(address sender, uint256 shares);
-    event Swap(address sender, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
-
-    error IdenticalPairAddress(address addressA, address addressB);
-    error ZeroPairAddress();
-
-    error NotEnoughLiquidityProvided();
-    error NotEnoughShares();
-    error NotEnoughReserve();
-
-    error InvalidInputToken();
-    error InvalidInputAmount();
-
-    error InvalidOutputAmount();
-
     constructor(address _tokenA, address _tokenB) {
-        if (_tokenA == _tokenB) revert IdenticalPairAddress(_tokenA, _tokenB);
-        if (_tokenA == address(0)) revert ZeroPairAddress();
+        if (_tokenA == _tokenB) revert IdenticalAddress();
+        if (_tokenA == address(0)) revert ZeroAddress();
         tokenA = _tokenA;
         tokenB = _tokenB;
     }
@@ -93,7 +78,7 @@ contract Pair {
     }
 
 
-    function swapTokenAToTokenB(uint256 amountIn) internal {
+    function swapTokenAToTokenB(uint256 amountIn) private {
         if (amountIn <= 0) revert InvalidInputAmount();
         IERC20(tokenA).safeTransferFrom(msg.sender, address(this), amountIn);
 
@@ -107,7 +92,7 @@ contract Pair {
         emit Swap(msg.sender, tokenA, tokenB, amountIn, amountOut);
     }
 
-    function swapTokenBToTokenA(uint256 amountIn) internal {
+    function swapTokenBToTokenA(uint256 amountIn) private {
         if (amountIn <= 0) revert InvalidInputAmount();
         IERC20(tokenB).safeTransferFrom(msg.sender, address(this), amountIn);
 
@@ -121,7 +106,7 @@ contract Pair {
         emit Swap(msg.sender, tokenB, tokenA, amountIn, amountOut);
     }
 
-    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256 amountOut) {
+    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) private pure returns (uint256 amountOut) {
         if (amountIn <= 0) revert InvalidInputAmount();
         if (reserveIn <= 0 && reserveOut <= 0) revert NotEnoughReserve();
 

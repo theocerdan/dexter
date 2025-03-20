@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.28;
 
-import "./Pair.sol";
-import { IUniswapV2Router02 } from "./interfaces/IUniswapV2Router02.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Pair} from "./Pair.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IRouter} from "./interfaces/IRouter.sol";
+import {IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract Router {
+contract Router is IRouter {
 
     using SafeERC20 for IERC20;
 
@@ -14,14 +15,6 @@ contract Router {
     address[] public allPairs;
     address immutable public uniswapV2Router;
     address immutable public owner;
-
-    event NewPair(address tokenA, address tokenB, address pair);
-
-    error Unauthorized(address sender, address owner);
-    error UnsufficientEther(uint256 value, uint256 expected);
-    error PairAlreadyExist();
-    error IdenticalAddress();
-    error ZeroAddress();
 
     constructor(address _uniswapV2Router) {
         uniswapV2Router = _uniswapV2Router;

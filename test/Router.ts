@@ -76,14 +76,14 @@ describe("Router contract", function () {
     const { tokenA } = await createTokens([], []);
     const { router } = await createRouter();
 
-    await expect(router.createPair(tokenA.getAddress(), ZeroAddress)).to.be.revertedWithCustomError(router, "ZeroPairAddress")
+    await expect(router.createPair(tokenA.getAddress(), ZeroAddress)).to.be.revertedWithCustomError(router, "ZeroAddress")
   });
 
   it("Create pair with identical addresses", async () => {
     const { tokenA } = await createTokens([], []);
     const { router } = await createRouter();
 
-    await expect(router.createPair(tokenA.getAddress(), tokenA.getAddress())).to.be.revertedWithCustomError(router, "IdenticalPairAddress");
+    await expect(router.createPair(tokenA.getAddress(), tokenA.getAddress())).to.be.revertedWithCustomError(router, "IdenticalAddress");
   });
 
   it("Create already existing pair ", async () => {

@@ -20,8 +20,8 @@ contract Router {
     error Unauthorized(address sender, address owner);
     error UnsufficientEther(uint256 value, uint256 expected);
     error PairAlreadyExist();
-    error IdenticalPairAddress(address addressA, address addressB);
-    error ZeroPairAddress();
+    error IdenticalAddress();
+    error ZeroAddress();
 
     constructor(address _uniswapV2Router) {
         uniswapV2Router = _uniswapV2Router;
@@ -29,9 +29,9 @@ contract Router {
     }
 
     function createPair(address tokenA, address tokenB) external {
-        if (tokenA == tokenB) revert IdenticalPairAddress(tokenA, tokenB);
+        if (tokenA == tokenB) revert IdenticalAddress();
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        if (token0 == address(0)) revert ZeroPairAddress();
+        if (token0 == address(0)) revert ZeroAddress();
         if (getPair[token0][token1] != address(0)) revert PairAlreadyExist();
 
         address pair = address(new Pair(token0, token1));

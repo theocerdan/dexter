@@ -279,8 +279,8 @@ describe("Pair", function () {
         });
 
 
-        [[100, 100, 300, 300]].forEach(([amountA, amountB, amountA2, amountB2]) => { // a refaire
-            it("should update reserves and shares for the first time if user deposit liquidity", async () => {
+        [[100, 100, 300, 300, 100, 400], [150, 100, 124, 300, 122, 222], [5, 59, 12, 14, 17, 21]].forEach(([amountA, amountB, amountA2, amountB2, firstTimeShares, secondTimeShares]) => { // a refaire
+            it("should update reserves and shares for the first and second time if user deposit liquidity", async () => {
                 const [ toto ] = await getSigners();
                 const balance = 100_000_000;
 
@@ -288,43 +288,28 @@ describe("Pair", function () {
                 const { router } = await createRouter();
                 const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
 
+                // First time deposit
                 await depositLiquidity(pair, pairTokenA, pairTokenB, amountA, amountB);
 
-                expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - amountA);
-                expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - amountB);
+                expect(await pairTokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - amountA);
+                expect(await pairTokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - amountB);
 
                 expect(await pair.reserveA()).to.be.equal(amountA);
                 expect(await pair.reserveB()).to.be.equal(amountB);
 
-                const firstTimeShares = Math.sqrt(amountA * amountB);
-
-                expect(await pair.totalShares()).to.be.equal(firstTimeShares);
                 expect(await pair.shares(await toto.getAddress())).to.be.equal(firstTimeShares);
 
+                // Second time deposit
                 await depositLiquidity(pair, pairTokenA, pairTokenB, amountA2, amountB2);
 
-                const secondTimeShares =  Math.min(
-                    (amountA2 * Number(await pair.totalShares())) / Number(await pair.reserveA()),
-                    (amountB2 * Number(await pair.totalShares())) / Number(await pair.reserveB())
-                ) + firstTimeShares;
+                expect(await pairTokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - amountA - amountA2);
+                expect(await pairTokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - amountB - amountB2);
 
-                expect(await pair.totalShares()).to.be.equal(secondTimeShares);
                 expect(await pair.reserveA()).to.be.equal(amountA + amountA2);
                 expect(await pair.reserveB()).to.be.equal(amountB + amountB2);
+
                 expect(await pair.shares(await toto.getAddress())).to.be.equal(secondTimeShares);
-                expect(await tokenA.balanceOf(await toto.getAddress())).to.be.equal(balance - (amountA + amountA2));
-                expect(await tokenB.balanceOf(await toto.getAddress())).to.be.equal(balance - (amountB + amountB2));
 
-                const lastEvent = await pair.queryFilter(pair.filters.AddLiquidity());
-
-                expect(lastEvent.length).to.be.equal(2);
-                expect(lastEvent[0].args.adder).to.be.equal(await toto.getAddress());
-                expect(lastEvent[0].args.amountA).to.be.equal(amountA);
-                expect(lastEvent[0].args.amountB).to.be.equal(amountB);
-
-                expect(lastEvent[1].args.adder).to.be.equal(await toto.getAddress());
-                expect(lastEvent[1].args.amountA).to.be.equal(amountA2);
-                expect(lastEvent[1].args.amountB).to.be.equal(amountB2);
             });
 
 

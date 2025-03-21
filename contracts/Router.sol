@@ -36,28 +36,24 @@ contract Router is IRouter {
         emit NewPair(tokenA, tokenB, pair);
     }
 
-    function swap(uint256 amountIn, address tokenIn, address tokenOut) external {
+    function swap(uint256 amountIn, address tokenIn, address tokenOut) external payable {
         address pair = getPair[tokenIn][tokenOut];
 
         if (pair == address(0)) {
-            //swapForwarding(amountIn, tokenIn, tokenOut, block.timestamp + 1 days);
+            IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
+            IERC20(tokenIn).safeIncreaseAllowance(this.uniswapV2Router(), amountIn);
+            if (msg.value != 1 ether) revert UnsufficientEther(msg.value, 1 ether);
+
+            address[] memory path = new address[](2);
+            path[0] = tokenIn;
+            path[1] = tokenOut;
+
+            IUniswapV2Router02(this.uniswapV2Router()).swapExactTokensForTokens(amountIn, 0, path, msg.sender, block.timestamp + 1);
             return;
         }
 
         IERC20(tokenIn).safeTransferFrom(msg.sender, pair, amountIn);
         Pair(pair).swap(tokenIn, 0, msg.sender);
-    }
-
-    function swapForwarding(uint256 amountIn, address tokenIn, address tokenOut, uint256 deadline) external payable {
-        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
-        IERC20(tokenIn).safeIncreaseAllowance(this.uniswapV2Router(), amountIn);
-        if (msg.value != 1 ether) revert UnsufficientEther(msg.value, 1 ether);
-
-        address[] memory path = new address[](2);
-        path[0] = tokenIn;
-        path[1] = tokenOut;
-
-        IUniswapV2Router02(this.uniswapV2Router()).swapExactTokensForTokens(amountIn, 0, path, msg.sender, deadline);
     }
 
     function withdrawFees() external {

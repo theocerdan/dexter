@@ -168,7 +168,7 @@ describe("Router contract", function () {
 
           await usdt.connect(vbSigner).approve(await router.getAddress(), 1000);
 
-          await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
+          await router.connect(vbSigner).swap(1000, USDT_ADDRESS, WETH_ADDRESS, { value: parseEther("1.0")});
 
           await expect(router.connect(vbSigner).withdrawFees()).to.be.revertedWithCustomError(router, "Unauthorized");
       });
@@ -183,7 +183,7 @@ describe("Router contract", function () {
 
           await usdt.connect(vbSigner).approve(await router.getAddress(), 1000);
 
-          await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
+          await router.connect(vbSigner).swap(1000, USDT_ADDRESS, WETH_ADDRESS, { value: parseEther("1.0")});
 
           const bal_eth_owner_before_withdraw = await hre.ethers.provider.getBalance(await toto.getAddress());
 
@@ -200,7 +200,30 @@ describe("Router contract", function () {
 
   });
 
-  describe("Swap forwarding", function () {
+  describe("Swap", function () {
+
+      it("should swap tokens through the router if the pair exist", async () => {
+          const [ toto ] = await ethers.getSigners();
+
+          const { tokenA, tokenB } = await createTokens([toto], [1000, 1000]);
+
+          const { router } = await createRouter();
+
+          const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+          await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
+
+          await pairTokenA.approve(await router.getAddress(), 100);
+          await router.swap(100, await pairTokenA.getAddress(), await pairTokenB.getAddress());
+
+          const { amountOut: simulateAmountOut } = simulateQuote(100n, 500n, 500n);
+          expect(await pair.reserveB()).to.be.equal(500n - simulateAmountOut);
+          expect(await pair.reserveA()).to.be.equal(500n + 100n);
+
+          expect(await pairTokenA.balanceOf(await toto.getAddress())).to.be.equal(1000n - 500n - 100n);
+          expect(await pairTokenB.balanceOf(await toto.getAddress())).to.be.equal(1000n - 500n + simulateAmountOut);
+      })
+
       it('should forward a swap through uniswap v2 if the pair doesn\' t exist', async () => {
           const { router } = await createRouter();
 
@@ -214,7 +237,7 @@ describe("Router contract", function () {
           const bal_eth_before = await hre.ethers.provider.getBalance(await vbSigner.getAddress());
 
           await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
-          await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
+          await router.connect(vbSigner).swap(1000, USDT_ADDRESS, WETH_ADDRESS, { value: parseEther("1.0")});
 
           const bal_weth_after = await weth.balanceOf(await vbSigner.getAddress());
           const bal_usdt_after = await usdt.balanceOf(await vbSigner.getAddress());
@@ -225,7 +248,7 @@ describe("Router contract", function () {
           expect(bal_eth_after).to.be.lt(bal_eth_before);
       });
 
-      it('should collect a 1 ether fee', async () => {
+      it('should collect a 1 ether fee if swap is forwarded', async () => {
           const { router } = await createRouter();
 
           const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
@@ -237,7 +260,7 @@ describe("Router contract", function () {
           await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
 
           const bal_eth_before = await hre.ethers.provider.getBalance(await router.getAddress());
-          await router.connect(vbSigner).swapForwarding(1000, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")});
+          await router.connect(vbSigner).swap(1000, USDT_ADDRESS, WETH_ADDRESS, { value: parseEther("1.0")});
 
           const bal_eth_after = await hre.ethers.provider.getBalance(await router.getAddress());
 
@@ -255,30 +278,9 @@ describe("Router contract", function () {
           const bal_usdt_before = await usdt.balanceOf(await vbSigner.getAddress());
 
           await usdt.connect(vbSigner).approve(await router.getAddress(), bal_usdt_before);
-          await expect(router.connect(vbSigner).swapForwarding(bal_usdt_before + 100n, USDT_ADDRESS, WETH_ADDRESS, 100000000000n, { value: parseEther("1.0")})).to.be.revertedWithoutReason();
+          await expect(router.connect(vbSigner).swap(bal_usdt_before + 100n, USDT_ADDRESS, WETH_ADDRESS, { value: parseEther("1.0")})).to.be.revertedWithoutReason();
       });
 
   });
-
-  describe("Swap", () => {
-      it("should swap tokens through the router", async () => {
-          const [ toto ] = await ethers.getSigners();
-
-          const { tokenA, tokenB } = await createTokens([toto], [10000, 10000]);
-
-          const { router } = await createRouter();
-
-          const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
-
-          await depositLiquidity(pair, pairTokenA, pairTokenB, 1000, 1000);
-
-          await pairTokenA.approve(await router.getAddress(), 100);
-          await router.swap(100, await pairTokenA.getAddress(), await pairTokenB.getAddress());
-
-          const { amountOut: simulateAmountOut } = simulateQuote(100n, 1000n, 1000n);
-          expect(await pair.reserveB()).to.be.equal(1000n - simulateAmountOut);
-          expect(await pair.reserveA()).to.be.equal(1000n + 100n);
-      })
-  })
 
 });

@@ -10,6 +10,7 @@ interface IRouter {
     event NewPair(address tokenA, address tokenB, address pair);
 
     error Unauthorized(address sender, address owner);
+    error WithdrawFailed();
     error UnsufficientEther(uint256 value, uint256 expected);
     error PairAlreadyExist();
     error IdenticalAddress();

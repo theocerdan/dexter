@@ -99,7 +99,7 @@ contract Pair is IPair {
         IERC20(tokenB).safeTransferFrom(msg.sender, address(this), amountIn);
 
         if (amountIn == 0) {
-            amountIn += IERC20(tokenA).balanceOf(address(this)) - reserveA;
+            amountIn += IERC20(tokenB).balanceOf(address(this)) - reserveB;
         }
 
         uint256 amountOut = getAmountOut(amountIn, reserveB, reserveA);

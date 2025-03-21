@@ -67,20 +67,23 @@ contract Pair is IPair {
         emit RemoveLiquidity(msg.sender, liquidity, amountA, amountB);
     }
 
-    function swap(address tokenIn, uint256 amountIn) external {
+    function swap(address tokenIn, uint256 amountIn, address to) external {
         if (tokenIn != tokenA && tokenIn != tokenB) revert InvalidInputToken();
 
         if (tokenIn == tokenA) {
-            swapTokenAToTokenB(amountIn);
+            swapTokenAToTokenB(amountIn, to);
         } else if (tokenIn == tokenB){
-            swapTokenBToTokenA(amountIn);
+            swapTokenBToTokenA(amountIn, to);
         }
     }
 
 
-    function swapTokenAToTokenB(uint256 amountIn) private {
-        if (amountIn <= 0) revert InvalidInputAmount();
+    function swapTokenAToTokenB(uint256 amountIn, address to) private {
         IERC20(tokenA).safeTransferFrom(msg.sender, address(this), amountIn);
+
+        if (amountIn == 0) {
+            amountIn += IERC20(tokenA).balanceOf(address(this)) - reserveA;
+        }
 
         uint256 amountOut = getAmountOut(amountIn, reserveA, reserveB);
         if (amountOut <= 0) revert InvalidOutputAmount();
@@ -88,13 +91,16 @@ contract Pair is IPair {
         reserveA += amountIn;
         reserveB -= amountOut;
 
-        IERC20(tokenB).safeTransfer(msg.sender, amountOut);
-        emit Swap(msg.sender, tokenA, tokenB, amountIn, amountOut);
+        IERC20(tokenB).safeTransfer(to, amountOut);
+        emit Swap(to, tokenA, tokenB, amountIn, amountOut);
     }
 
-    function swapTokenBToTokenA(uint256 amountIn) private {
-        if (amountIn <= 0) revert InvalidInputAmount();
+    function swapTokenBToTokenA(uint256 amountIn, address to) private {
         IERC20(tokenB).safeTransferFrom(msg.sender, address(this), amountIn);
+
+        if (amountIn == 0) {
+            amountIn += IERC20(tokenA).balanceOf(address(this)) - reserveA;
+        }
 
         uint256 amountOut = getAmountOut(amountIn, reserveB, reserveA);
         if (amountOut <= 0) revert InvalidOutputAmount();
@@ -102,12 +108,11 @@ contract Pair is IPair {
         reserveB += amountIn;
         reserveA -= amountOut;
 
-        IERC20(tokenA).safeTransfer(msg.sender, amountOut);
-        emit Swap(msg.sender, tokenB, tokenA, amountIn, amountOut);
+        IERC20(tokenA).safeTransfer(to, amountOut);
+        emit Swap(to, tokenB, tokenA, amountIn, amountOut);
     }
 
     function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) private pure returns (uint256 amountOut) {
-        if (amountIn <= 0) revert InvalidInputAmount();
         if (reserveIn <= 0 && reserveOut <= 0) revert NotEnoughReserve();
 
         uint amountInWithFee = amountIn * 997;

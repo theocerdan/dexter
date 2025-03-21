@@ -36,6 +36,17 @@ contract Router is IRouter {
         emit NewPair(tokenA, tokenB, pair);
     }
 
+    function swap(uint256 amountIn, address tokenIn, address tokenOut) external {
+        address pair = getPair[tokenIn][tokenOut];
+
+        if (pair == address(0)) {
+            //swapForwarding(amountIn, tokenIn, tokenOut, block.timestamp + 1 days);
+            return;
+        }
+
+        IERC20(tokenIn).safeTransferFrom(msg.sender, pair, amountIn);
+        Pair(pair).swap(tokenIn, 0, msg.sender);
+    }
 
     function swapForwarding(uint256 amountIn, address tokenIn, address tokenOut, uint256 deadline) external payable {
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);

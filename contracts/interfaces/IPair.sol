@@ -13,7 +13,7 @@ interface IPair {
 
     event AddLiquidity(address adder, uint256 amountA, uint256 amountB, uint256 mintedShares);
     event RemoveLiquidity(address remover, uint256 shares, uint256 amountA, uint256 amountB);
-    event Swap(address sender, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
+    event Swap(address to, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut);
 
     error IdenticalAddress();
     error ZeroAddress();
@@ -22,12 +22,11 @@ interface IPair {
     error NotEnoughReserve();
 
     error InvalidInputToken();
-    error InvalidInputAmount();
     error InvalidOutputAmount();
 
     function addLiquidity(uint256 amountA, uint256 amountB) external;
     function removeLiquidity(uint256 liquidity) external;
-    function swap(address tokenIn, uint256 amountIn) external;
+    function swap(address tokenIn, uint256 amountIn, address to) external;
     function getQuote(address tokenIn, uint256 amountIn) external view returns (uint256);
 
 }

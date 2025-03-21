@@ -1,16 +1,44 @@
 import hre, {ethers} from "hardhat";
-import { DumbERC20, Router} from "../typechain-types";
+import {DumbERC20, Pair, Router} from "../typechain-types";
 import {Addressable, parseEther, ZeroAddress} from "ethers";
 import {expect} from "chai";
 import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import {UNISWAP_V2_ROUTER_ADDRESS} from "./Constants";
-import {getSigners} from "@nomicfoundation/hardhat-ethers/internal/helpers";
+import {SignerWithAddress} from "@nomicfoundation/hardhat-ethers/signers";
 
 const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
 const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 const VITALIK_ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
 
 describe("Router contract", function () {
+    function simulateQuote(amountIn: bigint, reserveIn: bigint, reserveOut: bigint) {
+        expect(amountIn > 0n, "Amount in must be greater than zero");
+        expect(reserveIn > 0n && reserveOut > 0n, "Reserves must be greater than zero");
+
+        const amountInWithFee = amountIn * 997n;
+        const numerator = amountInWithFee * reserveOut;
+        const denominator = reserveIn * 1000n + amountInWithFee;
+
+        return { amountOut: numerator / denominator };
+    }
+    async function depositLiquidity(pair: Pair, tokenA: DumbERC20, tokenB: DumbERC20, amountA: number, amountB: number, who?: SignerWithAddress) {
+        const accounts = await ethers.getSigners();
+        let account = who == undefined ? accounts[0] : who;
+
+        const pairAddress = await pair.getAddress();
+
+        await tokenA.connect(account).approve(pairAddress, 100_000_000_000);
+        await tokenB.connect(account).approve(pairAddress, 100_000_000_000);
+
+        if (await pair.tokenA() == await tokenA.getAddress()) {
+            await pair.connect(account).addLiquidity(amountA, amountB);
+        } else {
+            await pair.connect(account).addLiquidity(amountB, amountA);
+        }
+    }
+    async function getSigners() {
+        return await ethers.getSigners()
+    }
 
   async function createTokens(airdropUsers: Addressable[], airdropAmount: number[]) {
       const feeData = await hre.ethers.provider.getFeeData();
@@ -147,7 +175,7 @@ describe("Router contract", function () {
 
       it('should be possible to withdraw fees if you are the owner', async () => {
           const { router } = await createRouter();
-          const [ toto ] = await getSigners(hre);
+          const [ toto ] = await getSigners();
 
           const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
 
@@ -231,5 +259,26 @@ describe("Router contract", function () {
       });
 
   });
+
+  describe("Swap", () => {
+      it("should swap tokens through the router", async () => {
+          const [ toto ] = await ethers.getSigners();
+
+          const { tokenA, tokenB } = await createTokens([toto], [10000, 10000]);
+
+          const { router } = await createRouter();
+
+          const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+          await depositLiquidity(pair, pairTokenA, pairTokenB, 1000, 1000);
+
+          await pairTokenA.approve(await router.getAddress(), 100);
+          await router.swap(100, await pairTokenA.getAddress(), await pairTokenB.getAddress());
+
+          const { amountOut: simulateAmountOut } = simulateQuote(100n, 1000n, 1000n);
+          expect(await pair.reserveB()).to.be.equal(1000n - simulateAmountOut);
+          expect(await pair.reserveA()).to.be.equal(1000n + 100n);
+      })
+  })
 
 });

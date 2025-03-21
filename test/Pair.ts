@@ -124,17 +124,6 @@ describe("Pair", function () {
             await expect(pair.getQuote(pairTokenA.getAddress(), 200)).to.be.revertedWithCustomError(pair, "NotEnoughReserve");
         });
 
-
-        it("should revert custom error when input amount is zero", async () => {
-            const [ toto, tata ] = await getSigners();
-
-            const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA } = await createPair(router, tokenA, tokenB);
-
-            await expect(pair.getQuote(pairTokenA.getAddress(), 0)).to.be.revertedWithCustomError(pair, "InvalidInputAmount");
-        });
-
         it("should revert custom error when input token is not a pair token", async () => {
             const [ toto, tata ] = await getSigners();
 
@@ -158,35 +147,49 @@ describe("Pair", function () {
 
             const { pair } = await createPair(router, tokenA, tokenB);
 
-            await expect(pair.swap(await tokenC.getAddress(), 100)).to.be.revertedWithCustomError(pair, "InvalidInputToken");
+            await expect(pair.swap(await tokenC.getAddress(), 100, await toto.getAddress())).to.be.revertedWithCustomError(pair, "InvalidInputToken");
         });
 
         it("should swap token", async () => {
             const [ toto ] = await getSigners();
 
-            const { tokenA, tokenB } = await createTokens([toto], [10000]);
+            const { tokenA, tokenB } = await createTokens([toto], [1000]);
             const { router } = await createRouter();
             const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
-            await pair.swap(await pairTokenA.getAddress(), 100);
+            await pair.swap(await pairTokenA.getAddress(), 100, await toto.getAddress());
 
             const { amountOut: simulateAmountOut } = simulateQuote(100n, 500n, 500n);
-            expect(await pair.reserveB()).to.be.equal(500n - simulateAmountOut);
+
             expect(await pair.reserveA()).to.be.equal(600n);
+            expect(await pair.reserveB()).to.be.equal(500n - simulateAmountOut);
 
-
-            const lastEvent = await pair.queryFilter(pair.filters.Swap());
-            expect(lastEvent.length).to.be.equal(1);
-            expect(lastEvent[0].args.amountIn).to.be.equal(100n);
-            expect(lastEvent[0].args.amountOut).to.be.equal(simulateAmountOut);
-            expect(lastEvent[0].args.sender).to.be.equal(await toto.getAddress());
-            expect(lastEvent[0].args.tokenIn).to.be.equal(await pairTokenA.getAddress());
-            expect(lastEvent[0].args.tokenOut).to.be.equal(await pairTokenB.getAddress());
+            expect(await pairTokenA.balanceOf(await toto.getAddress())).to.be.equal(500n - 100n);
+            expect(await pairTokenB.balanceOf(await toto.getAddress())).to.be.equal(500n + simulateAmountOut);
         });
 
-        it("should revert with a custom error when amountIs equals to zero", async () => {
+
+        it("should revert with a custom error if user don't pre-deposit token", async () => {
+            const [ toto ] = await getSigners();
+
+            const { tokenA, tokenB } = await createTokens([toto], [1000]);
+            const { router } = await createRouter();
+            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+
+            await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
+
+            await expect(pair.swap(await pairTokenA.getAddress(), 0, await toto.getAddress())).to.be.revertedWithCustomError(pair, "InvalidOutputAmount");
+
+            expect(await pair.reserveA()).to.be.equal(500n);
+            expect(await pair.reserveB()).to.be.equal(500n);
+
+            expect(await pairTokenA.balanceOf(await toto.getAddress())).to.be.equal(500n);
+            expect(await pairTokenB.balanceOf(await toto.getAddress())).to.be.equal(500n);
+        });
+
+        it("should swap token and emit event", async () => {
             const [ toto ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto], [10000]);
@@ -195,7 +198,17 @@ describe("Pair", function () {
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
-            await expect(pair.swap(await pairTokenA.getAddress(), 0)).to.be.revertedWithCustomError(pair, "InvalidInputAmount");
+            await pair.swap(await pairTokenA.getAddress(), 100, await toto.getAddress());
+
+            const { amountOut: simulateAmountOut } = simulateQuote(100n, 500n, 500n);
+
+            const lastEvent = await pair.queryFilter(pair.filters.Swap());
+            expect(lastEvent.length).to.be.equal(1);
+            expect(lastEvent[0].args.amountIn).to.be.equal(100n);
+            expect(lastEvent[0].args.amountOut).to.be.equal(simulateAmountOut);
+            expect(lastEvent[0].args.to).to.be.equal(await toto.getAddress());
+            expect(lastEvent[0].args.tokenIn).to.be.equal(await pairTokenA.getAddress());
+            expect(lastEvent[0].args.tokenOut).to.be.equal(await pairTokenB.getAddress());
         });
 
 
@@ -208,7 +221,7 @@ describe("Pair", function () {
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
-            await expect(pair.swap(await tokenA.getAddress(), 150)).to.be.revertedWithCustomError(tokenA, "ERC20InsufficientBalance");
+            await expect(pair.swap(await tokenA.getAddress(), 150, await toto.getAddress())).to.be.revertedWithCustomError(tokenA, "ERC20InsufficientBalance");
         });
 
         it("should revert with custom error when user don't have enough allowed token", async () => {
@@ -220,7 +233,7 @@ describe("Pair", function () {
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
-            await expect(pair.connect(tata).swap(await tokenA.getAddress(), 150)).to.be.revertedWithCustomError(tokenA, "ERC20InsufficientAllowance");
+            await expect(pair.connect(tata).swap(await tokenA.getAddress(), 150, await tata.getAddress())).to.be.revertedWithCustomError(tokenA, "ERC20InsufficientAllowance");
         });
 
 
@@ -233,7 +246,7 @@ describe("Pair", function () {
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
-            await expect(pair.swap(await pairTokenA.getAddress(), 1)).to.be.revertedWithCustomError(pair, "InvalidOutputAmount");
+            await expect(pair.swap(await pairTokenA.getAddress(), 1, await toto.getAddress())).to.be.revertedWithCustomError(pair, "InvalidOutputAmount");
         });
     });
 

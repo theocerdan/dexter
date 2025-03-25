@@ -34,7 +34,10 @@ const config: HardhatUserConfig = {
         },
         sepolia: {
             url: "https://sepolia.infura.io/v3/" + process.env.INFURA_API_KEY,
-            accounts: process.env.PRIVATE_KEY_SEPOLIA ? [process.env.PRIVATE_KEY_SEPOLIA] : [],
+            accounts: [process.env.PRIVATE_KEY_SEPOLIA as string],
+            gas: "auto",
+            gasPrice: "auto",
+            gasMultiplier: 1,
         }
     }
 };

@@ -36,7 +36,7 @@ contract Router is IRouter {
         emit NewPair(tokenA, tokenB, pair);
     }
 
-    function swap(uint256 amountIn, address tokenIn, address tokenOut) external payable {
+    function swap(uint256 amountIn, address tokenIn, address tokenOut, uint256 minAmountOut) external payable {
         address pair = getPair[tokenIn][tokenOut];
 
         if (pair == address(0)) {
@@ -53,7 +53,7 @@ contract Router is IRouter {
         }
 
         IERC20(tokenIn).safeTransferFrom(msg.sender, pair, amountIn);
-        Pair(pair).swap(tokenIn, 0, msg.sender);
+        Pair(pair).swap(tokenIn, minAmountOut, msg.sender);
     }
 
     function withdrawFees() external {

@@ -67,25 +67,22 @@ contract Pair is IPair {
         emit RemoveLiquidity(msg.sender, liquidity, amountA, amountB);
     }
 
-    function swap(address tokenIn, uint256 amountIn, address to) external {
+    function swap(address tokenIn, uint256 minAmountOut, address to) external {
         if (tokenIn != tokenA && tokenIn != tokenB) revert InvalidInputToken();
 
         if (tokenIn == tokenA) {
-            swapTokenAToTokenB(amountIn, to);
+            swapTokenAToTokenB(minAmountOut, to);
         } else if (tokenIn == tokenB){
-            swapTokenBToTokenA(amountIn, to);
+            swapTokenBToTokenA(minAmountOut, to);
         }
     }
 
-    function swapTokenAToTokenB(uint256 amountIn, address to) private {
-        IERC20(tokenA).safeTransferFrom(msg.sender, address(this), amountIn);
-
-        if (amountIn == 0) {
-            amountIn += IERC20(tokenA).balanceOf(address(this)) - reserveA;
-        }
+    function swapTokenAToTokenB(uint256 minAmountOut, address to) private {
+        uint256 amountIn = IERC20(tokenA).balanceOf(address(this)) - reserveA;
 
         uint256 amountOut = getAmountOut(amountIn, reserveA, reserveB);
         if (amountOut <= 0) revert InvalidOutputAmount();
+        if (amountOut < minAmountOut) revert InsufficientOutputAmount();
 
         reserveA += amountIn;
         reserveB -= amountOut;
@@ -94,15 +91,12 @@ contract Pair is IPair {
         emit Swap(to, tokenA, tokenB, amountIn, amountOut);
     }
 
-    function swapTokenBToTokenA(uint256 amountIn, address to) private {
-        IERC20(tokenB).safeTransferFrom(msg.sender, address(this), amountIn);
-
-        if (amountIn == 0) {
-            amountIn += IERC20(tokenB).balanceOf(address(this)) - reserveB;
-        }
+    function swapTokenBToTokenA(uint256 minAmountOut, address to) private {
+        uint256 amountIn = IERC20(tokenB).balanceOf(address(this)) - reserveB;
 
         uint256 amountOut = getAmountOut(amountIn, reserveB, reserveA);
         if (amountOut <= 0) revert InvalidOutputAmount();
+        if (amountOut < minAmountOut) revert InsufficientOutputAmount();
 
         reserveB += amountIn;
         reserveA -= amountOut;

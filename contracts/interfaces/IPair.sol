@@ -23,6 +23,7 @@ interface IPair {
 
     error InvalidInputToken();
     error InvalidOutputAmount();
+    error InsufficientOutputAmount();
 
     function addLiquidity(uint256 amountA, uint256 amountB) external;
     function removeLiquidity(uint256 liquidity) external;

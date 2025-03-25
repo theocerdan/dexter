@@ -17,7 +17,7 @@ interface IRouter {
     error ZeroAddress();
 
     function createPair(address tokenA, address tokenB) external;
-    function swap(uint256 amountIn, address tokenIn, address tokenOut) external payable;
+    function swap(uint256 amountIn, address tokenIn, address tokenOut, uint256 minAmountOut) external payable;
     function withdrawFees() external;
 
 }

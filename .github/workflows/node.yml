@@ -1,4 +1,4 @@
-name: NodeJS with Grunt
+name: Node.js CI
 
 on:
   push:

@@ -25,9 +25,7 @@ jobs:
     - name: Build
       run: |
         npm install
-        grunt
 
     - name: Test
       run: |
         npx hardhat test
-        grunt

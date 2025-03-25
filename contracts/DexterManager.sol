@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.28;
 
-import {Pair} from "./Pair.sol";
+import {DexterPool} from "./DexterPool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IRouter} from "./interfaces/IRouter.sol";
+import {IDexterManager} from "./interfaces/IDexterManager.sol";
 import {IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract Router is IRouter {
+contract DexterManager is IDexterManager {
 
     using SafeERC20 for IERC20;
 
@@ -27,7 +27,7 @@ contract Router is IRouter {
         if (token0 == address(0)) revert ZeroAddress();
         if (getPair[token0][token1] != address(0)) revert PairAlreadyExist();
 
-        address pair = address(new Pair(token0, token1));
+        address pair = address(new DexterPool(token0, token1));
 
         getPair[token0][token1] = pair;
         getPair[token1][token0] = pair;
@@ -53,7 +53,7 @@ contract Router is IRouter {
         }
 
         IERC20(tokenIn).safeTransferFrom(msg.sender, pair, amountIn);
-        Pair(pair).swap(tokenIn, minAmountOut, msg.sender);
+        DexterPool(pair).swap(tokenIn, minAmountOut, msg.sender);
     }
 
     function withdrawFees() external {

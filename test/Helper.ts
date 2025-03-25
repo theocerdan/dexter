@@ -1,5 +1,5 @@
 import hre, {ethers} from "hardhat";
-import {DumbERC20, Pair, Router} from "../typechain-types";
+import {DexterManager, DexterPool, DumbERC20} from "../typechain-types";
 import {Addressable} from "ethers";
 import {expect} from "chai";
 import {SignerWithAddress} from "@nomicfoundation/hardhat-ethers/signers";
@@ -40,14 +40,16 @@ async function createTokens(airdropUsers: Addressable[], airdropAmount: number[]
     return { tokenA, tokenB, addressTokenA: tokenA.getAddress(), addressTokenB: tokenB.getAddress() };
 }
 
-async function createRouter() {
+async function createManager() {
 
-    const router = await hre.ethers.deployContract("Router", [UNISWAP_V2_ROUTER_ADDRESS]);
+    const feeData = await hre.ethers.provider.getFeeData();
+
+    const router = await hre.ethers.deployContract("DexterManager", [UNISWAP_V2_ROUTER_ADDRESS], { gasPrice: feeData.gasPrice });
 
     return { router };
 }
 
-async function createPair(router: Router, tokenA: DumbERC20, tokenB: DumbERC20) {
+async function createPool(router: DexterManager, tokenA: DumbERC20, tokenB: DumbERC20) {
     const tokenAAddress = await tokenA.getAddress();
     const tokenBAddress = await tokenB.getAddress();
 
@@ -55,20 +57,20 @@ async function createPair(router: Router, tokenA: DumbERC20, tokenB: DumbERC20) 
 
     const events = await router.queryFilter(router.filters.NewPair());
 
-    const rightPairAddress = events.filter((e) => {
+    const rightPairAddress = events.filter((e: { args: { tokenA: string; tokenB: string; }; }) => {
         return e.args.tokenA == tokenAAddress || tokenBAddress && e.args.tokenB == tokenAAddress || tokenBAddress;
     })
 
     expect(rightPairAddress.length).to.be.equal(1);
 
-    const pair = await ethers.getContractAt("Pair", rightPairAddress[0].args.pair);
+    const pair = await ethers.getContractAt("DexterPool", rightPairAddress[0].args.pair);
     const pairTokenA = await ethers.getContractAt("DumbERC20", await pair.tokenA());
     const pairTokenB = await ethers.getContractAt("DumbERC20", await pair.tokenB());
 
     return { pair, pairTokenA: pairTokenA, pairTokenB: pairTokenB };
 }
 
-async function depositLiquidity(pair: Pair, tokenA: DumbERC20, tokenB: DumbERC20, amountA: number, amountB: number, who?: SignerWithAddress) {
+async function depositLiquidity(pair: DexterPool, tokenA: DumbERC20, tokenB: DumbERC20, amountA: number, amountB: number, who?: SignerWithAddress) {
     const accounts = await ethers.getSigners();
     let account = who == undefined ? accounts[0] : who;
 
@@ -85,4 +87,4 @@ async function depositLiquidity(pair: Pair, tokenA: DumbERC20, tokenB: DumbERC20
 }
 
 
-export { simulateQuote, getSigners, createTokens, createRouter, createPair, depositLiquidity };
+export { simulateQuote, getSigners, createTokens, createManager, createPool, depositLiquidity };

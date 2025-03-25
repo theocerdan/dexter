@@ -2,24 +2,24 @@ import hre, {ethers} from "hardhat";
 import {parseEther, ZeroAddress} from "ethers";
 import {expect} from "chai";
 import {anyValue} from "@nomicfoundation/hardhat-chai-matchers/withArgs";
-import {createPair, createRouter, createTokens, depositLiquidity, getSigners, simulateQuote} from "./Helper";
+import {createPool, createManager, createTokens, depositLiquidity, getSigners, simulateQuote} from "./Helper";
 
 const USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
 const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 const VITALIK_ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
 
-describe("Router contract", function () {
+describe("DexterManager contract", function () {
 
-  it("should deploy Router Contract", async () => {
-    await createRouter();
+  it("should deploy DexterManager Contract", async () => {
+    await createManager();
   })
 
-    describe("Pair", function () {
-        it("should create Pair", async () => {
+    describe("Pool", function () {
+        it("should create a pool", async () => {
             const { tokenA, tokenB } = await createTokens([], []);
-            const { router } = await createRouter();
+            const { router } = await createManager();
 
-            const { pair } = await createPair(router, tokenA, tokenB);
+            const { pair } = await createPool(router, tokenA, tokenB);
 
             expect(await pair.tokenA() == await tokenA.getAddress() || await tokenB.getAddress());
             expect(await pair.tokenB() == await tokenA.getAddress() || await tokenB.getAddress());
@@ -31,21 +31,21 @@ describe("Router contract", function () {
 
         it("should revert custom error if token address is zero", async () => {
             const { tokenA } = await createTokens([], []);
-            const { router } = await createRouter();
+            const { router } = await createManager();
 
             await expect(router.createPair(tokenA.getAddress(), ZeroAddress)).to.be.revertedWithCustomError(router, "ZeroAddress")
         });
 
         it("should revert custom error if token address are identical", async () => {
             const { tokenA } = await createTokens([], []);
-            const { router } = await createRouter();
+            const { router } = await createManager();
 
             await expect(router.createPair(tokenA.getAddress(), tokenA.getAddress())).to.be.revertedWithCustomError(router, "IdenticalAddress");
         });
 
         it("should revert custom error if pair already exist", async () => {
             const { tokenA, tokenB } = await createTokens([], []);
-            const { router } = await createRouter();
+            const { router } = await createManager();
 
             await router.createPair(tokenA.getAddress(), tokenB.getAddress());
             await expect(router.createPair(tokenA.getAddress(), tokenB.getAddress())).to.be.revertedWithCustomError(router, "PairAlreadyExist");
@@ -53,8 +53,8 @@ describe("Router contract", function () {
 
         it("should return pair address by using getPair() function", async () => {
             const { tokenA, tokenB } = await createTokens([], []);
-            const { router } = await createRouter();
-            const { pair } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair } = await createPool(router, tokenA, tokenB);
 
             const pairAddress = await router.getPair(tokenA.getAddress(), tokenB.getAddress());
             const pairAddressReverse = await router.getPair(tokenB.getAddress(), tokenA.getAddress());
@@ -65,14 +65,14 @@ describe("Router contract", function () {
 
         it("should emit event when new pair is created", async () => {
             const { tokenA, tokenB } = await createTokens([], []);
-            const { router } = await createRouter();
+            const { router } = await createManager();
 
             await expect(router.createPair(tokenA.getAddress(), tokenB.getAddress())).to.emit(router, "NewPair").withArgs(tokenA.getAddress(), tokenB.getAddress(), anyValue);
         });
 
         it("should return zero address if pair isn't exist", async () => {
             const { tokenA, tokenB } = await createTokens([], []);
-            const { router } = await createRouter();
+            const { router } = await createManager();
 
             expect(await router.getPair(tokenA.getAddress(), tokenB.getAddress())).to.be.equal(ZeroAddress);
         });
@@ -81,7 +81,7 @@ describe("Router contract", function () {
 
   describe("Withdraw fees", function () {
       it('should not be possible to withdraw fees if you are not the owner', async () => {
-          const { router } = await createRouter();
+          const { router } = await createManager();
 
           const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
 
@@ -95,7 +95,7 @@ describe("Router contract", function () {
       });
 
       it('should be possible to withdraw fees if you are the owner', async () => {
-          const { router } = await createRouter();
+          const { router } = await createManager();
           const [ toto ] = await getSigners();
 
           const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
@@ -131,8 +131,8 @@ describe("Router contract", function () {
                 const [ toto ] = await getSigners();
 
                 const { tokenA, tokenB } = await createTokens([toto], [1000]);
-                const { router } = await createRouter();
-                const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+                const { router } = await createManager();
+                const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
                 await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -144,8 +144,8 @@ describe("Router contract", function () {
                 const [ toto ] = await getSigners();
 
                 const { tokenA, tokenB } = await createTokens([toto], [1000]);
-                const { router } = await createRouter();
-                const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+                const { router } = await createManager();
+                const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
                 await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -158,8 +158,8 @@ describe("Router contract", function () {
                 const [ toto ] = await getSigners();
 
                 const { tokenA, tokenB } = await createTokens([toto], [1000]);
-                const { router } = await createRouter();
-                const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+                const { router } = await createManager();
+                const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
                 await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -174,9 +174,9 @@ describe("Router contract", function () {
             const { tokenA, tokenB } = await createTokens([toto], [10000, 10000]);
             const { tokenA: tokenC } = await createTokens([toto], [10000]);
 
-            const { router } = await createRouter();
+            const { router } = await createManager();
 
-            const { pair } = await createPair(router, tokenA, tokenB);
+            const { pair } = await createPool(router, tokenA, tokenB);
 
             await expect(pair.swap(await tokenC.getAddress(), 100, await toto.getAddress())).to.be.revertedWithCustomError(pair, "InvalidInputToken");
         });
@@ -185,8 +185,8 @@ describe("Router contract", function () {
             const [ toto ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto], [1000]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -207,8 +207,8 @@ describe("Router contract", function () {
             const [ toto ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto], [1000]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -225,8 +225,8 @@ describe("Router contract", function () {
             const [ toto ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto], [10000]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -249,8 +249,8 @@ describe("Router contract", function () {
             const [ toto ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto], [600]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -263,8 +263,8 @@ describe("Router contract", function () {
             const [ toto, tata ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto, tata], [600, 1000]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -276,8 +276,8 @@ describe("Router contract", function () {
             const [ toto ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto], [10000]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -289,9 +289,9 @@ describe("Router contract", function () {
 
           const { tokenA, tokenB } = await createTokens([toto], [1000, 1000]);
 
-          const { router } = await createRouter();
+          const { router } = await createManager();
 
-          const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+          const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
           await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -307,7 +307,7 @@ describe("Router contract", function () {
       })
 
       it('should forward a swap through uniswap v2 if the pair doesn\' t exist', async () => {
-          const { router } = await createRouter();
+          const { router } = await createManager();
 
           const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
 
@@ -331,7 +331,7 @@ describe("Router contract", function () {
       });
 
       it('should collect a 1 ether fee if swap is forwarded', async () => {
-          const { router } = await createRouter();
+          const { router } = await createManager();
 
           const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
 
@@ -351,7 +351,7 @@ describe("Router contract", function () {
       });
 
       it('should not forward a swap through uniswap v2 if user doesn\' t have enough USDT', async () => {
-          const { router } = await createRouter();
+          const { router } = await createManager();
 
           const vbSigner = await ethers.getImpersonatedSigner(VITALIK_ADDRESS);
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.28;
 
-interface IPair {
+interface IDexterPool {
 
     function tokenA() external view returns (address);
     function tokenB() external view returns (address);

@@ -1,5 +1,4 @@
 import {task} from "hardhat/config";
-import {parseUnits} from "ethers";
 
 task(
     'block-number',
@@ -28,14 +27,14 @@ task("balanceERC20", "Prints an account's ERC20 balance")
         }
     );
 
-task("router")
+task("manager")
     .addParam("uniswap", "The contract's address")
     .setAction(async (taskArgs, hre) => {
             const feeData = await hre.ethers.provider.getFeeData();
 
             const signer = await hre.ethers.getSigners();
             const address = await signer[0].getAddress();
-            const routerContract = await hre.ethers.getContractFactory("Router");
+            const routerContract = await hre.ethers.getContractFactory("DexterManager");
             const tokenContract = await hre.ethers.getContractFactory("DumbERC20");
 
             const tokenA = await tokenContract.deploy("TokenA", "TKA", { gasPrice: feeData.gasPrice });
@@ -50,7 +49,7 @@ task("router")
             console.log("Contract TokenA deployed to address:", await tokenA.getAddress());
             console.log("Contract TokenB deployed to address:", await tokenB.getAddress());
             console.log("Contract TokenC deployed to address:", await tokenC.getAddress());
-            console.log("Contract Router deployed to address:", await router.getAddress());
+            console.log("Contract DexterManager deployed to address:", await router.getAddress());
 
             const pair1 = await router.createPair(await tokenA.getAddress(), await tokenB.getAddress());
             const pair2 = await router.createPair(await tokenC.getAddress(), await tokenB.getAddress());
@@ -58,8 +57,8 @@ task("router")
             await pair1.wait();
             await pair2.wait();
 
-            console.log("Pair 1 created at address:", pair1.hash);
-            console.log("Pair 2 created at address:", pair2.hash);
+            console.log("DexterPool.sol 1 created at address:", pair1.hash);
+            console.log("DexterPool.sol 2 created at address:", pair2.hash);
         }
     );
 
@@ -103,7 +102,7 @@ task("move-fund")
 task("remove-allowance")
     .addParam("target", "The pair's address")
     .setAction(async (taskArgs, hre) => {
-            const pair = await hre.ethers.getContractAt("Pair", taskArgs.target);
+            const pair = await hre.ethers.getContractAt("DexterPool", taskArgs.target);
             const tokenA = await hre.ethers.getContractAt("ERC20", await pair.tokenA());
             const tokenB = await hre.ethers.getContractAt("ERC20", await pair.tokenB());
 

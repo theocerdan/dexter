@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
-interface IRouter {
+interface IDexterManager {
 
     function owner() external view returns (address);
     function uniswapV2Router() external view returns (address);

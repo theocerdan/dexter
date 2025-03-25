@@ -1,15 +1,15 @@
 import {expect} from "chai";
-import {createPair, createRouter, createTokens, depositLiquidity, getSigners, simulateQuote} from "./Helper";
+import {createPool, createManager, createTokens, depositLiquidity, getSigners, simulateQuote} from "./Helper";
 
-describe("Pair", function () {
+describe("DexterPool", function () {
 
     describe("Get Quote", function () {
         it("should return a quote equals to the simulate quote", async () => {
             const [ toto, tata ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 10000, 10000);
 
@@ -22,8 +22,8 @@ describe("Pair", function () {
             const [ toto, tata ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 10000, 4000);
 
@@ -36,8 +36,8 @@ describe("Pair", function () {
             const [ toto, tata ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto, tata], [10000, 10000]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA } = await createPool(router, tokenA, tokenB);
 
             await expect(pair.getQuote(pairTokenA.getAddress(), 200)).to.be.revertedWithCustomError(pair, "NotEnoughReserve");
         });
@@ -47,8 +47,8 @@ describe("Pair", function () {
 
             const { tokenA, tokenB} = await createTokens([toto, tata], [10000, 10000]);
             const { tokenA: tokenC } = await createTokens([], []);
-            const { router } = await createRouter();
-            const { pair } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair } = await createPool(router, tokenA, tokenB);
 
             await expect(pair.getQuote(tokenC.getAddress(), 10)).to.be.revertedWithCustomError(pair, "InvalidInputToken");
         });
@@ -61,9 +61,9 @@ describe("Pair", function () {
             const { tokenA, tokenB } = await createTokens([toto], [10000, 10000]);
             const { tokenA: tokenC } = await createTokens([toto], [10000]);
 
-            const { router } = await createRouter();
+            const { router } = await createManager();
 
-            const { pair } = await createPair(router, tokenA, tokenB);
+            const { pair } = await createPool(router, tokenA, tokenB);
 
             await expect(pair.swap(await tokenC.getAddress(), 100, await toto.getAddress())).to.be.revertedWithCustomError(pair, "InvalidInputToken");
         });
@@ -73,8 +73,8 @@ describe("Pair", function () {
             const [ toto ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto], [1000]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -91,8 +91,8 @@ describe("Pair", function () {
             const [ toto ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto], [10000]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 500, 500);
 
@@ -106,8 +106,8 @@ describe("Pair", function () {
             const [ toto ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto], [100]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 100, 200)).to.be.revertedWithCustomError(pairTokenA, "ERC20InsufficientBalance");
             await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 200, 100)).to.be.revertedWithCustomError(pairTokenA, "ERC20InsufficientBalance");
@@ -117,8 +117,8 @@ describe("Pair", function () {
             const [ toto ] = await getSigners();
 
             const { tokenA, tokenB } = await createTokens([toto], [100]);
-            const { router } = await createRouter();
-            const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+            const { router } = await createManager();
+            const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
             await expect(depositLiquidity(pair, pairTokenA, pairTokenB, 0, 0)).to.be.revertedWithCustomError(pair, "NotEnoughLiquidityProvided");
         });
@@ -128,8 +128,8 @@ describe("Pair", function () {
                 const balance = 100_000_000;
 
                 const { tokenA, tokenB } = await createTokens([toto], [balance]);
-                const { router } = await createRouter();
-                const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+                const { router } = await createManager();
+                const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
                 await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100);
 
@@ -148,8 +148,8 @@ describe("Pair", function () {
                 const balance = 100_000_000;
 
                 const { tokenA, tokenB } = await createTokens([toto], [balance]);
-                const { router } = await createRouter();
-                const { pair, pairTokenA, pairTokenB } = await createPair(router, tokenA, tokenB);
+                const { router } = await createManager();
+                const { pair, pairTokenA, pairTokenB } = await createPool(router, tokenA, tokenB);
 
                 // First time deposit
                 await depositLiquidity(pair, pairTokenA, pairTokenB, amountA, amountB);
@@ -185,8 +185,8 @@ describe("Pair", function () {
             const balance = 100_000_000;
 
             const {tokenA, tokenB} = await createTokens([toto, tata], [balance, balance]);
-            const {router} = await createRouter();
-            const {pair, pairTokenA, pairTokenB} = await createPair(router, tokenA, tokenB);
+            const {router} = await createManager();
+            const {pair, pairTokenA, pairTokenB} = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100, toto);
             await depositLiquidity(pair, pairTokenA, pairTokenB, 200, 200, tata);
@@ -210,8 +210,8 @@ describe("Pair", function () {
             const balance = 100_000_000;
 
             const {tokenA, tokenB} = await createTokens([toto, tata], [balance, balance]);
-            const {router} = await createRouter();
-            const {pair, pairTokenA, pairTokenB} = await createPair(router, tokenA, tokenB);
+            const {router} = await createManager();
+            const {pair, pairTokenA, pairTokenB} = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100, toto);
             await depositLiquidity(pair, pairTokenA, pairTokenB, 200, 200, tata);
@@ -233,8 +233,8 @@ describe("Pair", function () {
             const balance = 100_000_000;
 
             const {tokenA, tokenB} = await createTokens([toto], [balance]);
-            const {router} = await createRouter();
-            const {pair, pairTokenA, pairTokenB} = await createPair(router, tokenA, tokenB);
+            const {router} = await createManager();
+            const {pair, pairTokenA, pairTokenB} = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100);
 
@@ -253,8 +253,8 @@ describe("Pair", function () {
             const balance = 100_000_000;
 
             const {tokenA, tokenB} = await createTokens([toto], [balance]);
-            const {router} = await createRouter();
-            const {pair, pairTokenA, pairTokenB} = await createPair(router, tokenA, tokenB);
+            const {router} = await createManager();
+            const {pair, pairTokenA, pairTokenB} = await createPool(router, tokenA, tokenB);
 
             await depositLiquidity(pair, pairTokenA, pairTokenB, 100, 100);
 

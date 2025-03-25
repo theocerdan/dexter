@@ -77,7 +77,6 @@ contract Pair is IPair {
         }
     }
 
-
     function swapTokenAToTokenB(uint256 amountIn, address to) private {
         IERC20(tokenA).safeTransferFrom(msg.sender, address(this), amountIn);
 
@@ -133,4 +132,3 @@ contract Pair is IPair {
     }
 
 }
-

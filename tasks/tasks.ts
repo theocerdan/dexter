@@ -1,4 +1,5 @@
 import {task} from "hardhat/config";
+import {parseUnits} from "ethers";
 
 task(
     'block-number',
@@ -42,8 +43,9 @@ task("router")
             const tokenC = await tokenContract.deploy("TokenC", "TKC", { gasPrice: feeData.gasPrice });
             const router = await routerContract.deploy(taskArgs.uniswap, { gasPrice: feeData.gasPrice });
 
-            await tokenA.mint(address, 1000);
-            await tokenB.mint(address, 1000);
+            await tokenA.mint(address, 10000);
+            await tokenB.mint(address, 10000);
+            await tokenC.mint(address, 10000);
 
             console.log("Contract TokenA deployed to address:", await tokenA.getAddress());
             console.log("Contract TokenB deployed to address:", await tokenB.getAddress());

@@ -26,6 +26,14 @@ jobs:
       run: |
         npm install
 
+    - name: Create .env File
+      run: |
+        echo "INFURA_API_KEY=${{ secrets.INFURA_API_KEY }}" >> .env
+        echo "ETHERSCAN_API_KEY=${{ secrets.ETHERSCAN_API_KEY }}" >> .env
+        echo "COINMARKETCAP_API_KEY=${{ secrets.COINMARKETCAP_API_KEY }}" >> .env
+        echo "PRIVATE_KEY_SEPOLIA=${{ secrets.PRIVATE_KEY_SEPOLIA }}" >> .env
+
+
     - name: Test
       run: |
         npx hardhat test

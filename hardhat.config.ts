@@ -38,6 +38,10 @@ const config: HardhatUserConfig = {
             gas: "auto",
             gasPrice: "auto",
             gasMultiplier: 1,
+        },
+        holesky: {
+            url: "https://holesky.infura.io/v3/" + process.env.INFURA_API_KEY,
+            accounts: [process.env.PRIVATE_KEY_SEPOLIA as string],
         }
     }
 };

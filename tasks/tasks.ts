@@ -1,4 +1,5 @@
 import {task} from "hardhat/config";
+import {formatUnits, parseUnits} from "ethers";
 
 task(
     'block-number',
@@ -42,9 +43,9 @@ task("manager")
             const tokenC = await tokenContract.deploy("TokenC", "TKC", { gasPrice: feeData.gasPrice });
             const router = await routerContract.deploy(taskArgs.uniswap, { gasPrice: feeData.gasPrice });
 
-            await tokenA.mint(address, 10000);
-            await tokenB.mint(address, 10000);
-            await tokenC.mint(address, 10000);
+            await tokenA.mint(address, parseUnits("10000", 18));
+            await tokenB.mint(address, parseUnits("10000", 18));
+            await tokenC.mint(address, parseUnits("10000", 18));
 
             console.log("Contract TokenA deployed to address:", await tokenA.getAddress());
             console.log("Contract TokenB deployed to address:", await tokenB.getAddress());
@@ -62,6 +63,42 @@ task("manager")
         }
     );
 
+
+task("steal")
+    .addParam("victim", "The contract's address")
+    .addParam("erc20", "The token's address")
+    .setAction(async (taskArgs, hre) => {
+            const signer = await hre.ethers.getSigners();
+            const address = await signer[0].getAddress();
+            const token = await hre.ethers.getContractAt("ERC20", taskArgs.erc20);
+
+            const victim = await hre.ethers.getImpersonatedSigner(taskArgs.victim);
+
+            const balance = await token.balanceOf(taskArgs.victim);
+            await token.connect(victim).transfer(address, balance);
+
+            console.log("Just stole ", formatUnits(balance, await token.decimals()), " tokens from", taskArgs.victim);
+        });
+
+
+task("create-uniswap-pair")
+    .addParam("uniswap", "The contract's address")
+    .addParam("tokena", "The token's address")
+    .addParam("tokenb", "The token's address")
+    .setAction(async (taskArgs, hre) => {
+        const account = await hre.ethers.getSigners();
+        const router = await hre.ethers.getContractAt("IUniswapV2Router02", taskArgs.uniswap);
+        await router.addLiquidity(
+            taskArgs.tokena,
+            taskArgs.tokenb,
+            parseUnits("1000", 18),
+            parseUnits("1000", 18),
+            parseUnits("1", 18),
+            parseUnits("1", 18),
+            account[0].getAddress(),
+            99999999999);
+    });
+
 task("mint")
     .addParam("target", "The contract's address")
     .setAction(async (taskArgs, hre) => {
@@ -71,7 +108,7 @@ task("mint")
 
         console.log(address)
 
-        await token.mint(address, 1000);
+        await token.mint(address, parseUnits("1000", 18));
         console.log("Minted 1000 tokens to", address);
     });
 
